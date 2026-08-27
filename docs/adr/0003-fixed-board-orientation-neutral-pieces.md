@@ -17,8 +17,8 @@ The device lies flat on a table between two players who face each other, so the 
 
 The recognisability question above is being answered by a throwaway prototype on the
 **`prototype/piece-set`** branch (`prototypes/piece-set/index.html`, open it directly in a
-browser, or `npx serve prototypes` to reach it from a phone). It offers three structurally
-different candidates, switchable with the arrow keys:
+browser, or `npx serve prototypes` to reach it from a phone). It offers five candidates,
+switchable with the arrow keys:
 
 - **A — Top-down realism.** The literal view down onto a 3D set: the rook a crenellated ring,
   the king a cross, the bishop a slit disc. Its honest weakness is the knight, which from
@@ -30,7 +30,29 @@ different candidates, switchable with the arrow keys:
   diagonal cross, rook an orthogonal cross, knight the constellation of its eight
   destinations. Symmetric for free and it teaches the game, but it asks the most of a player
   who already knows chess.
+- **D — Diagonal mirror.** B's trick cut corner-to-corner instead of horizontally. The
+  diagonal is 1.41× the side, so each half gets far more room, and the halves are stylised
+  down to the piece's head alone so the set reads as emblems rather than little statues. Both
+  players see their half tilted 45°, and identically so, so neither of them gets the
+  upside-down seat.
+- **E — Plain Staunton.** The control: ordinary one-way pieces with no mirroring, included so
+  the premise of this ADR can be tested rather than assumed.
 
-The verdict is a judgement call to be made on a real device, and a mix is legitimate (for
-instance B's pieces with C's knight, if the mirrored knight proves to be the weak one). Record
+Two findings so far. **The knight decides this** — it is the only piece that faces a
+direction, and it is the piece that fails in A (a featureless blob from above) and that
+initially fused into a single wave in both mirrored schemes. In D it was rescued by pulling
+the halves apart and adding an eye; that technique is the thing to carry forward.
+
+And **plain Staunton is more defensible than this ADR assumed.** Staunton silhouettes are
+left-right symmetric, so a 180° rotation is effectively a vertical flip: inverted pieces stay
+*distinguishable*, merely upside-down-looking. The real trade is therefore not "correct
+versus broken" but a small permanent learning cost on both players (symmetric glyphs) against
+an inversion cost carried by whichever player is looking from the far side (Staunton). Three
+things still argue against it: both players watch the board continuously, including on the
+opponent's turn, so roughly half of all board-viewing is inverted; the knight is inverted
+*and* facing backwards; and a casual audience reads pieces by shape rather than by position.
+Above all, this app imitates a physical set on a table, and a physical set has no
+upside-down problem at all.
+
+The verdict is a judgement call to be made on a real device, and a mix is legitimate. Record
 the answer here once it is made; the artwork is on the critical path.
