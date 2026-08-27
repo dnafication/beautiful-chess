@@ -6,7 +6,9 @@
   instantly as its piece? (ADR 0003 committed us to pieces that read correctly
   from both sides of a table, which rules out every off-the-shelf Staunton set.)
 
-  Three radically different answers, switchable via ?variant=A|B|C.
+  Five answers, switchable via ?variant=A|B|C|D|E — including E, a plain
+  one-way Staunton control, so the premise of ADR 0003 can be tested rather
+  than assumed. Hit the rotate button on E to see what the opponent sees.
 
   ASSUMPTION STATED UP FRONT: the app itself does not exist yet (no Expo project,
   no task runner), so this is a single double-clickable HTML file rather than a
@@ -124,7 +126,7 @@
       .switcher button:hover { background: #333; }
       .switcher .name {
         font: 500 13px/1 ui-sans-serif, system-ui;
-        padding: 0 12px; min-width: 190px; text-align: center;
+        padding: 0 12px; min-width: 210px; text-align: center;
       }
       .switcher .name b { font-family: ui-monospace, monospace; margin-right: 7px; }
     </style>
@@ -345,7 +347,134 @@
         },
       };
 
-      const VARIANTS = { A, B, C };
+      /* ------------------------------------------------------------------ *
+       * VARIANT D — Diagonal mirror.
+       * Same mirroring trick as B, but cut along the diagonal instead of
+       * horizontally. The diagonal is 1.41x the side, so each half gets ~40%
+       * more room, and the halves are stylised down to just the piece's
+       * head — the part that actually distinguishes it — so the set reads as
+       * emblems rather than as literal little statues.
+       * ------------------------------------------------------------------ */
+      // Each emblem is drawn upright and centred on (50,50), deliberately squat
+      // — wide and short — because the diagonal offers width where it counts.
+      const EMBLEMS = {
+        p: (w) =>
+          circle(50, 44, 14, w) + solid('M36 57 h28 v12 h-28 z', w),
+        r: (w) =>
+          solid('M22 38 h9 v8 h11 v-8 h16 v8 h11 v-8 h9 v32 h-56 z', w),
+        b: (w) =>
+          solid(
+            'M50 30 C64 42 72 50 72 58 C72 66 62 70 50 70 C38 70 28 66 28 58 C28 50 36 42 50 30 Z',
+            w
+          ) +
+          `<path d="M42 63 L61 43" stroke="${w ? DARK : LIGHT}"
+             stroke-width="6" stroke-linecap="round"/>`,
+        q: (w) =>
+          solid(
+            'M26 70 L22 40 L32 51 L38 35 L44 48 L50 33 L56 48 L62 35 L68 51 L78 40 L74 70 Z',
+            w
+          ) +
+          [[22, 38], [38, 33], [50, 31], [62, 33], [78, 38]]
+            .map(([x, y]) => circle(x, y, 4.5, w))
+            .join(''),
+        k: (w) =>
+          solid('M28 70 Q26 52 36 46 Q44 42 50 46 Q56 42 64 46 Q74 52 72 70 Z', w) +
+          solid('M45 26 h10 v8 h8 v9 h-8 v8 h-10 v-8 h-8 v-9 h8 z', w),
+        n: (w) =>
+          // the profile proven in B, widened and flattened so the two halves
+          // stay separate instead of merging into one wave
+          `<g transform="translate(50 50) scale(1.3 0.82) translate(-47 -26)">${solid(
+            B.halves.n,
+            w
+          )}</g>`,
+      };
+
+      const D = {
+        name: 'Diagonal mirror',
+        blurb:
+          'B\'s mirroring, cut along the <b>diagonal</b> instead of horizontally — the diagonal is 1.41&times; the side, so each half gets far more room. Stylised down to the piece\'s <b>head</b> only, so the set reads as emblems rather than little statues. Both players see their half tilted 45°, and identically so &mdash; nobody gets the upside-down seat.',
+        glyph(t, w) {
+          const e = EMBLEMS[t](w);
+          const place = 'translate(5 30) scale(0.9)';
+          return svg(
+            `<g transform="rotate(45 50 50) ${place}">${e}</g>
+             <g transform="rotate(225 50 50) ${place}">${e}</g>`
+          );
+        },
+      };
+
+      /* ------------------------------------------------------------------ *
+       * VARIANT E — Plain Staunton, no mirroring. The control.
+       * This is the thing we assumed was unacceptable. Included so the claim
+       * can be tested rather than argued: hit the rotate toggle and you are
+       * looking at exactly what the opponent looks at all game.
+       * ------------------------------------------------------------------ */
+      const E = {
+        name: 'Plain Staunton (the control)',
+        blurb:
+          'Ordinary one-way pieces, <b>no mirroring at all</b> — what we assumed was unacceptable. <b>Hit the rotate button</b>: that is precisely what your opponent stares at for the whole game. Judge whether it is actually intolerable, or merely imperfect. Note the knight especially, the one piece that faces a direction.',
+        glyph(t, w) {
+          const base = (x, y, wd) =>
+            solid(`M${x} ${y} h${wd} v9 h-${wd} z`, w);
+          switch (t) {
+            case 'p':
+              return svg(
+                circle(50, 26, 11, w) +
+                  solid('M41 37 Q39 50 33 60 L31 69 h38 l-2 -9 Q61 50 59 37 Z', w) +
+                  base(27, 69, 46)
+              );
+            case 'r':
+              return svg(
+                solid(
+                  'M28 22 h9 v8 h9 v-8 h8 v8 h9 v-8 h9 v14 l-6 6 v18 l6 8 v3 h-44 v-3 l6 -8 v-18 l-6 -6 z',
+                  w
+                ) + base(25, 71, 50)
+              );
+            case 'b':
+              return svg(
+                circle(50, 14, 5, w) +
+                  solid(
+                    'M50 20 C60 30 64 40 64 48 C64 56 58 61 50 61 C42 61 36 56 36 48 C36 40 40 30 50 20 Z',
+                    w
+                  ) +
+                  `<path d="M45 45 L57 32" stroke="${w ? DARK : LIGHT}"
+                     stroke-width="5" stroke-linecap="round"/>` +
+                  solid('M40 62 Q36 70 30 75 h40 Q64 70 60 62 Z', w) +
+                  base(25, 75, 50)
+              );
+            case 'n':
+              return svg(
+                solid(
+                  'M30 75 C32 62 38 55 46 52 C40 50 32 47 24 44 C21 43 20 40 22 37 C26 30 33 23 42 18 C45 16 47 12 47 8 L53 13 C62 19 70 30 73 44 C76 56 75 67 74 75 Z',
+                  w
+                ) +
+                  `<circle cx="41" cy="33" r="3" fill="${w ? DARK : LIGHT}"/>` +
+                  base(24, 75, 52)
+              );
+            case 'q':
+              return svg(
+                solid(
+                  'M31 60 L27 28 L36 40 L40 22 L46 38 L50 20 L54 38 L60 22 L64 40 L73 28 L69 60 Z',
+                  w
+                ) +
+                  [[27, 26], [40, 20], [50, 18], [60, 20], [73, 26]]
+                    .map(([x, y]) => circle(x, y, 4, w))
+                    .join('') +
+                  solid('M33 61 Q29 70 24 75 h52 Q71 70 67 61 Z', w) +
+                  base(23, 75, 54)
+              );
+            case 'k':
+              return svg(
+                solid('M46 5 h8 v8 h8 v8 h-8 v8 h-8 v-8 h-8 v-8 h8 z', w) +
+                  solid('M31 60 Q29 42 36 33 Q43 27 50 32 Q57 27 64 33 Q71 42 69 60 Z', w) +
+                  solid('M33 61 Q29 70 24 75 h52 Q71 70 67 61 Z', w) +
+                  base(23, 75, 54)
+              );
+          }
+        },
+      };
+
+      const VARIANTS = { A, B, C, D, E };
       const KEYS = Object.keys(VARIANTS);
 
       const currentKey = () => {
