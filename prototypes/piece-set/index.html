@@ -1,0 +1,419 @@
+<!doctype html>
+<!--
+  PROTOTYPE — THROWAWAY CODE. NOT PRODUCTION.
+
+  Question it answers: does an orientation-neutral chess piece glyph still read
+  instantly as its piece? (ADR 0003 committed us to pieces that read correctly
+  from both sides of a table, which rules out every off-the-shelf Staunton set.)
+
+  Three radically different answers, switchable via ?variant=A|B|C.
+
+  ASSUMPTION STATED UP FRONT: the app itself does not exist yet (no Expo project,
+  no task runner), so this is a single double-clickable HTML file rather than a
+  throwaway route. That is sound here because the thing under evaluation is SVG
+  artwork, which renders identically in a browser and in react-native-svg — the
+  winning path data transfers over unchanged.
+
+  The real test is on a phone or tablet, so serve it over your LAN:
+      npx serve prototypes
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PROTOTYPE — orientation-neutral piece sets</title>
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 24px 16px 120px;
+        font: 15px/1.5 ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+        background: #e8e6e1;
+        color: #2a2a28;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .proto-tag {
+        font: 600 11px/1 ui-monospace, monospace;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+        color: #a33;
+        border: 1px solid #a33;
+        padding: 5px 9px;
+        border-radius: 3px;
+        margin-bottom: 18px;
+      }
+      h1 { font-size: 19px; margin: 0 0 4px; font-weight: 600; text-align: center; }
+      .question { margin: 0 0 22px; color: #6b6a65; font-size: 14px; text-align: center; max-width: 420px; }
+      .stage { width: 100%; max-width: 420px; }
+      .label {
+        font: 600 11px/1 ui-monospace, monospace;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+        color: #8a8983;
+        margin: 26px 0 10px;
+      }
+      /* the board itself: no coordinates, per ADR 0003 */
+      .board {
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        width: 100%;
+        aspect-ratio: 1;
+        border-radius: 3px;
+        overflow: hidden;
+        box-shadow: 0 2px 14px rgba(0,0,0,.16);
+        transition: transform .45s ease;
+      }
+      .board.flipped { transform: rotate(180deg); }
+      .sq { position: relative; }
+      .sq.light { background: #ebe7dd; }
+      .sq.dark  { background: #b3ad9e; }
+      .sq svg { position: absolute; inset: 7%; width: 86%; height: 86%; }
+      .legend {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 4px;
+        background: #ebe7dd;
+        padding: 10px 6px 6px;
+        border-radius: 3px;
+      }
+      .legend div { text-align: center; }
+      .legend svg { width: 100%; height: auto; aspect-ratio: 1; }
+      .legend span {
+        display: block;
+        font: 500 9px/1 ui-monospace, monospace;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+        color: #8a8983;
+        margin-top: 3px;
+      }
+      .legend .row-dark { background: #b3ad9e; border-radius: 2px; }
+      .controls { display: flex; gap: 8px; margin-top: 14px; }
+      .controls button {
+        flex: 1;
+        font: 500 13px/1 inherit;
+        padding: 11px;
+        border: 1px solid #c3bfb4;
+        background: #f4f2ee;
+        border-radius: 4px;
+        cursor: pointer;
+        color: #2a2a28;
+      }
+      .controls button[aria-pressed="true"] { background: #2a2a28; color: #f4f2ee; border-color: #2a2a28; }
+      .rationale {
+        margin-top: 16px; padding: 13px 15px;
+        background: #f4f2ee; border-left: 3px solid #c3bfb4;
+        border-radius: 0 3px 3px 0;
+        font-size: 13.5px; color: #55544f;
+      }
+      .rationale b { color: #2a2a28; }
+      /* deliberately not part of the design under evaluation */
+      .switcher {
+        position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+        display: flex; align-items: center; gap: 4px;
+        background: #16161a; color: #fff;
+        border-radius: 999px; padding: 5px 6px;
+        box-shadow: 0 5px 22px rgba(0,0,0,.34);
+        z-index: 50;
+      }
+      .switcher button {
+        width: 34px; height: 34px; border: 0; border-radius: 999px;
+        background: transparent; color: #fff; font-size: 17px; cursor: pointer;
+      }
+      .switcher button:hover { background: #333; }
+      .switcher .name {
+        font: 500 13px/1 ui-sans-serif, system-ui;
+        padding: 0 12px; min-width: 190px; text-align: center;
+      }
+      .switcher .name b { font-family: ui-monospace, monospace; margin-right: 7px; }
+    </style>
+  </head>
+  <body>
+    <div class="proto-tag">Prototype · throwaway</div>
+    <h1>Orientation-neutral piece sets</h1>
+    <p class="question">
+      The board never flips, so both players see the same pieces at once. Does each
+      glyph still read instantly as its piece &mdash; from either side?
+    </p>
+
+    <div class="stage">
+      <div class="label" id="legend-label">Glyphs</div>
+      <div class="legend" id="legend-white"></div>
+      <div class="legend row-dark" id="legend-black" style="margin-top:4px"></div>
+
+      <div class="label">At playing size</div>
+      <div class="board" id="board"></div>
+
+      <div class="controls">
+        <button id="flip" aria-pressed="false">Rotate 180° — view from Black</button>
+      </div>
+
+      <div class="rationale" id="rationale"></div>
+    </div>
+
+    <div class="switcher">
+      <button id="prev" aria-label="Previous variant">&larr;</button>
+      <div class="name" id="vname"></div>
+      <button id="next" aria-label="Next variant">&rarr;</button>
+    </div>
+
+    <script>
+      const DARK = '#2a2a28';
+      const LIGHT = '#f6f4ef';
+      const TYPES = ['k', 'q', 'r', 'b', 'n', 'p'];
+      const NAMES = { k: 'King', q: 'Queen', r: 'Rook', b: 'Bishop', n: 'Knight', p: 'Pawn' };
+
+      // Italian Game — every piece type present in both colours, realistic density.
+      const POSITION = [
+        ['r', '', 'b', 'q', 'k', 'b', 'n', 'r'],
+        ['p', 'p', 'p', 'p', '', 'p', 'p', 'p'],
+        ['', '', 'n', '', '', '', '', ''],
+        ['', '', '', '', 'p', '', '', ''],
+        ['', '', 'B', '', 'P', '', '', ''],
+        ['', '', '', '', '', 'N', '', ''],
+        ['P', 'P', 'P', 'P', '', 'P', 'P', 'P'],
+        ['R', 'N', 'B', 'Q', 'K', '', '', 'R'],
+      ];
+
+      const svg = (inner) =>
+        `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">${inner}</svg>`;
+
+      // Shape filled per colour: white pieces are hollow with a dark edge,
+      // black pieces are solid. Works for any silhouette.
+      const solid = (d, w) =>
+        `<path d="${d}" fill="${w ? LIGHT : DARK}" stroke="${DARK}" stroke-width="3.5"
+           stroke-linejoin="round" stroke-linecap="round"/>`;
+      const circle = (cx, cy, r, w) =>
+        `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${w ? LIGHT : DARK}"
+           stroke="${DARK}" stroke-width="3.5"/>`;
+      const dot = (cx, cy, r, w) =>
+        `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${w ? DARK : LIGHT}"/>`;
+      // Line-art marks: dark casing with a contrasting core, so white reads hollow.
+      const stroke2 = (d, w) =>
+        `<path d="${d}" fill="none" stroke="${DARK}" stroke-width="15"
+           stroke-linecap="round" stroke-linejoin="round"/>
+         <path d="${d}" fill="none" stroke="${w ? LIGHT : DARK}" stroke-width="7"
+           stroke-linecap="round" stroke-linejoin="round"/>`;
+
+      /* ------------------------------------------------------------------ *
+       * VARIANT A — Top-down realism.
+       * Literally what you see looking straight down at a real 3D set. The
+       * pieces are already orientation-neutral from directly above, because
+       * that is how a physical set solves this. Honest about the knight.
+       * ------------------------------------------------------------------ */
+      const A = {
+        name: 'Top-down realism',
+        blurb:
+          'What you actually see looking straight down at a real set. A rook is a ring, a bishop is a slit disc, a king is a cross. <b>Watch the knight</b> — from above it is genuinely just a blob, and that is the honest weakness of this approach.',
+        glyph(t, w) {
+          switch (t) {
+            case 'p':
+              return svg(circle(50, 50, 17, w));
+            case 'r': // hollow crenellated top = a ring with four notches
+              return svg(
+                circle(50, 50, 28, w) +
+                  `<circle cx="50" cy="50" r="15" fill="${w ? DARK : LIGHT}"/>` +
+                  [0, 90, 180, 270]
+                    .map(
+                      (a) =>
+                        `<rect x="46" y="17" width="8" height="16" fill="${w ? DARK : LIGHT}"
+                           transform="rotate(${a} 50 50)"/>`
+                    )
+                    .join('')
+              );
+            case 'b': // the mitre's diagonal groove, read from above
+              return svg(
+                circle(50, 50, 25, w) +
+                  `<path d="M33 33 L67 67" stroke="${w ? DARK : LIGHT}"
+                     stroke-width="7" stroke-linecap="round"/>`
+              );
+            case 'n': // an oval blob — deliberately not rescued
+              return svg(
+                `<ellipse cx="50" cy="50" rx="19" ry="27" fill="${w ? LIGHT : DARK}"
+                   stroke="${DARK}" stroke-width="3.5"/>` +
+                  dot(50, 31, 4, w) +
+                  dot(50, 69, 4, w)
+              );
+            case 'q': // coronet of points seen from above
+              return svg(
+                circle(50, 50, 26, w) +
+                  Array.from({ length: 8 }, (_, i) => i * 45)
+                    .map((a) => {
+                      const rad = (a * Math.PI) / 180;
+                      return dot(
+                        50 + Math.cos(rad) * 18,
+                        50 + Math.sin(rad) * 18,
+                        4.5,
+                        w
+                      );
+                    })
+                    .join('')
+              );
+            case 'k': // the cross that sits on top of every king
+              return svg(
+                circle(50, 50, 27, w) +
+                  `<path d="M50 33 V67 M33 50 H67" stroke="${w ? DARK : LIGHT}"
+                     stroke-width="8" stroke-linecap="round"/>`
+              );
+          }
+        },
+      };
+
+      /* ------------------------------------------------------------------ *
+       * VARIANT B — Mirrored Staunton, the playing-card solution.
+       * Court cards solved this exact problem centuries ago: draw the top
+       * half, then repeat it rotated 180°. Perfectly symmetric by
+       * construction, while keeping familiar Staunton profiles.
+       * ------------------------------------------------------------------ */
+      const B = {
+        name: 'Mirrored Staunton (card logic)',
+        blurb:
+          'The solution playing cards found centuries ago: draw the recognisable top half, then repeat it rotated 180°. <b>Symmetric by construction</b>, and keeps the Staunton profiles everyone already knows. Costs you half the vertical space per glyph.',
+        halves: {
+          p: 'M40 47 L44 32 Q50 28 56 32 L60 47 Z M50 17 m-9 0 a9 9 0 1 0 18 0 a9 9 0 1 0 -18 0',
+          r: 'M31 10 h9 v6 h6 v-6 h8 v6 h6 v-6 h9 v14 l-6 5 v18 h-26 v-18 l-6 -5 z',
+          n: 'M62 47 C63 38 61 31 54 27 C48 24 43 25 38 28 C34 30 30 31 27 30 C29 25 33 20 39 17 C42 15 45 13 46 10 L49 5 L53 10 C58 13 63 20 65 28 C67 35 67 41 66 47 Z',
+          b: 'M50 14 C58 22 62 29 62 36 C62 43 57 46 50 47 C43 46 38 43 38 36 C38 29 42 22 50 14 Z',
+          q: 'M33 47 L30 22 L38 32 L44 18 L50 30 L56 18 L62 32 L70 22 L67 47 Z',
+          k: 'M35 47 L33 30 Q50 24 67 30 L65 47 Z M47 3 h6 v7 h7 v6 h-7 v7 h-6 v-7 h-7 v-6 h7 z',
+        },
+        glyph(t, w) {
+          const d = this.halves[t];
+          // the bishop needs its mitre slit, or the mirrored teardrop reads as a lens
+          const extra =
+            t === 'b'
+              ? `<path d="M44 40 L57 25" stroke="${w ? DARK : LIGHT}"
+                   stroke-width="5" stroke-linecap="round"/>`
+              : '';
+          const half = solid(d, w) + extra;
+          return svg(
+            `<g>${half}</g><g transform="rotate(180 50 50)">${half}</g>`
+          );
+        },
+      };
+
+      /* ------------------------------------------------------------------ *
+       * VARIANT C — Movement semantics.
+       * Not a picture of the piece: a picture of how it moves. Every mark is
+       * inherently 180°-symmetric, and it teaches the game as you play.
+       * ------------------------------------------------------------------ */
+      const C = {
+        name: 'Movement semantics',
+        blurb:
+          'Not a picture of the piece — a picture of <b>how it moves</b>. Bishop is a diagonal cross, rook is an orthogonal cross, queen is both, knight is the constellation of its eight destinations. Symmetric for free, and it teaches the game while you play. Asks the most of an existing chess player.',
+        glyph(t, w) {
+          switch (t) {
+            case 'p': // a single step
+              return svg(stroke2('M50 40 L50 60', w));
+            case 'r': // ranks and files
+              return svg(stroke2('M50 22 L50 78 M22 50 L78 50', w));
+            case 'b': // diagonals
+              return svg(stroke2('M28 28 L72 72 M72 28 L28 72', w));
+            case 'q': // both
+              return svg(
+                stroke2(
+                  'M50 20 L50 80 M20 50 L80 50 M29 29 L71 71 M71 29 L29 71',
+                  w
+                )
+              );
+            case 'k': // one square in any direction
+              return svg(
+                `<rect x="26" y="26" width="48" height="48" rx="7"
+                   fill="none" stroke="${DARK}" stroke-width="15"/>
+                 <rect x="26" y="26" width="48" height="48" rx="7"
+                   fill="none" stroke="${w ? LIGHT : DARK}" stroke-width="7"/>` +
+                  dot(50, 50, 7, w)
+              );
+            case 'n': {
+              // the eight squares a knight can reach
+              const offs = [
+                [1, 2], [2, 1], [2, -1], [1, -2],
+                [-1, -2], [-2, -1], [-2, 1], [-1, 2],
+              ];
+              return svg(
+                offs
+                  .map(
+                    ([x, y]) =>
+                      `<circle cx="${50 + x * 16}" cy="${50 + y * 16}" r="7.5"
+                         fill="${w ? LIGHT : DARK}" stroke="${DARK}" stroke-width="3.5"/>`
+                  )
+                  .join('')
+              );
+            }
+          }
+        },
+      };
+
+      const VARIANTS = { A, B, C };
+      const KEYS = Object.keys(VARIANTS);
+
+      const currentKey = () => {
+        const k = (new URLSearchParams(location.search).get('variant') || 'A').toUpperCase();
+        return KEYS.includes(k) ? k : 'A';
+      };
+
+      function render() {
+        const key = currentKey();
+        const v = VARIANTS[key];
+
+        const cells = (colourIsWhite) =>
+          TYPES.map(
+            (t) =>
+              `<div>${v.glyph(t, colourIsWhite)}<span>${NAMES[t]}</span></div>`
+          ).join('');
+        document.getElementById('legend-white').innerHTML = cells(true);
+        document.getElementById('legend-black').innerHTML = cells(false);
+
+        document.getElementById('board').innerHTML = POSITION.map((row, r) =>
+          row
+            .map((p, f) => {
+              const shade = (r + f) % 2 === 0 ? 'light' : 'dark';
+              const piece = p
+                ? v.glyph(p.toLowerCase(), p === p.toUpperCase())
+                : '';
+              return `<div class="sq ${shade}">${piece}</div>`;
+            })
+            .join('')
+        ).join('');
+
+        document.getElementById('rationale').innerHTML = v.blurb;
+        document.getElementById('vname').innerHTML = `<b>${key}</b>${v.name}`;
+        document.getElementById('legend-label').textContent =
+          `Glyphs — ${v.name}`;
+      }
+
+      function go(delta) {
+        const i = KEYS.indexOf(currentKey());
+        const next = KEYS[(i + delta + KEYS.length) % KEYS.length];
+        const url = new URL(location.href);
+        url.searchParams.set('variant', next);
+        history.replaceState({}, '', url);
+        render();
+      }
+
+      document.getElementById('prev').onclick = () => go(-1);
+      document.getElementById('next').onclick = () => go(1);
+
+      const flip = document.getElementById('flip');
+      flip.onclick = () => {
+        const board = document.getElementById('board');
+        const on = board.classList.toggle('flipped');
+        flip.setAttribute('aria-pressed', String(on));
+        flip.textContent = on
+          ? "Rotate back — view from White"
+          : 'Rotate 180° — view from Black';
+      };
+
+      addEventListener('keydown', (e) => {
+        const el = document.activeElement;
+        if (el && /^(INPUT|TEXTAREA)$/.test(el.tagName)) return;
+        if (el && el.isContentEditable) return;
+        if (e.key === 'ArrowLeft') go(-1);
+        if (e.key === 'ArrowRight') go(1);
+      });
+
+      render();
+    </script>
+  </body>
+</html>
