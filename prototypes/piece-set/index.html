@@ -355,6 +355,10 @@
        * head — the part that actually distinguishes it — so the set reads as
        * emblems rather than as literal little statues.
        * ------------------------------------------------------------------ */
+      // Shared by D and E: the horse head that actually reads as a horse.
+      const KNIGHT_HEAD =
+        'M30 75 C32 62 38 55 46 52 C40 50 32 47 24 44 C21 43 20 40 22 37 C26 30 33 23 42 18 C45 16 47 12 47 8 L53 13 C62 19 70 30 73 44 C76 56 75 67 74 75 Z';
+
       // Each emblem is drawn upright and centred on (50,50), deliberately squat
       // — wide and short — because the diagonal offers width where it counts.
       const EMBLEMS = {
@@ -381,12 +385,12 @@
           solid('M28 70 Q26 52 36 46 Q44 42 50 46 Q56 42 64 46 Q74 52 72 70 Z', w) +
           solid('M45 26 h10 v8 h8 v9 h-8 v8 h-10 v-8 h-8 v-9 h8 z', w),
         n: (w) =>
-          // the profile proven in B, widened and flattened so the two halves
-          // stay separate instead of merging into one wave
-          `<g transform="translate(50 50) scale(1.3 0.82) translate(-47 -26)">${solid(
-            B.halves.n,
+          // the same horse head used in E, which reads well, squashed wide and
+          // short to suit the diagonal
+          `<g transform="translate(50 50) scale(0.92 0.66) translate(-48 -41.5)">${solid(
+            KNIGHT_HEAD,
             w
-          )}</g>`,
+          )}<circle cx="41" cy="33" r="3.5" fill="${w ? DARK : LIGHT}"/></g>`,
       };
 
       const D = {
@@ -395,7 +399,11 @@
           'B\'s mirroring, cut along the <b>diagonal</b> instead of horizontally — the diagonal is 1.41&times; the side, so each half gets far more room. Stylised down to the piece\'s <b>head</b> only, so the set reads as emblems rather than little statues. Both players see their half tilted 45°, and identically so &mdash; nobody gets the upside-down seat.',
         glyph(t, w) {
           const e = EMBLEMS[t](w);
-          const place = 'translate(5 30) scale(0.9)';
+          // The knight's two halves fuse into a single wave when they meet
+          // nose-to-nose, so it alone is pulled further apart and scaled down
+          // to open a clear gap between the muzzles.
+          const [s, off] = t === 'n' ? [0.78, 34] : [0.9, 30];
+          const place = `translate(${50 * (1 - s)} ${50 * (1 - s) + off}) scale(${s})`;
           return svg(
             `<g transform="rotate(45 50 50) ${place}">${e}</g>
              <g transform="rotate(225 50 50) ${place}">${e}</g>`
@@ -444,10 +452,7 @@
               );
             case 'n':
               return svg(
-                solid(
-                  'M30 75 C32 62 38 55 46 52 C40 50 32 47 24 44 C21 43 20 40 22 37 C26 30 33 23 42 18 C45 16 47 12 47 8 L53 13 C62 19 70 30 73 44 C76 56 75 67 74 75 Z',
-                  w
-                ) +
+                solid(KNIGHT_HEAD, w) +
                   `<circle cx="41" cy="33" r="3" fill="${w ? DARK : LIGHT}"/>` +
                   base(24, 75, 52)
               );
