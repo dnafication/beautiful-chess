@@ -16,8 +16,5 @@ The region of the screen belonging to one player, along the side of the board ne
 **Tray**:
 The display of pieces a player has captured, shown on that player's Player Edge. Purely a display; it is never the source of any calculation. _Avoid_: captured pieces bar, graveyard.
 
-**Orientation-Neutral**:
-Of a piece glyph: drawn symmetrically so that it reads correctly to both players at once, the way a physical 3D piece does. The property that lets the board stay fixed. _Avoid_: two-way, reversible, symmetric.
-
 **Material Advantage**:
 The difference in total piece value between the two sides, derived from the pieces standing on the board rather than from the Tray, so that promotions are reflected. Not a measure of who is winning. _Avoid_: winning edge, score, points, advantage, evaluation.
