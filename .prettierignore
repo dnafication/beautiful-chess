@@ -1,0 +1,14 @@
+node_modules
+.expo
+dist
+assets
+package-lock.json
+
+# Agent skills are vendored from mattpocock/skills; leave them byte-identical to
+# their source so the skills-lock.json hashes keep matching.
+.agents
+skills-lock.json
+
+# ADRs are decision records and the research files are primary-source material.
+# Reformatting them churns diffs and rewrites text we want to keep stable.
+docs

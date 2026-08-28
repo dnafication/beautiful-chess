@@ -19,6 +19,23 @@ blocking edges. Work one whose blockers are all closed.
    Each term carries an explicit _Avoid_ list.
 5. **Write Conventional Commits.**
 
+## Commands
+
+`npm run verify` runs the whole gate — type check, lint, format check, tests — and is exactly
+what CI runs. The individual scripts are in `package.json`; `npm test` alone is the fast inner
+loop.
+
+Two things the scripts do not tell you:
+
+- **The rules boundary is enforced by lint, not by convention.** Anything under `src/rules`
+  that imports React, React Native or Expo, or touches a browser global, fails `npm run lint`
+  and therefore fails CI. That is ADR 0002 made mechanical. The suite also collects
+  `src/**/*.test.ts` only, never `.tsx`, so a test needing JSX is testing UI — which v1
+  verifies by hand.
+- **Prettier ignores `docs/`, and lint ignores `.agents/`.** ADRs are decision records and the
+  research files are primary-source material, so they stay byte-stable; `.agents` is vendored
+  from `mattpocock/skills` and must match its source.
+
 ## Decisions already made
 
 Read the ADR covering an area before changing it. Each records the reasoning, which is the part
