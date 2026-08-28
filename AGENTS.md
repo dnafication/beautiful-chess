@@ -19,6 +19,11 @@ blocking edges. Work one whose blockers are all closed.
    Each term carries an explicit _Avoid_ list.
 5. **Write Conventional Commits.**
 
+`src/rules/README.md` documents the rules module — its public interface, how to import it, and
+three behaviours that surprise people. Read it before touching anything under `src/rules`. Its
+examples are executed by `src/rules/readme.test.ts`, so if you change the interface, that file
+fails and the README must be updated with it.
+
 ## Commands
 
 `npm run verify` runs the whole gate — type check, lint, format check, tests — and is exactly

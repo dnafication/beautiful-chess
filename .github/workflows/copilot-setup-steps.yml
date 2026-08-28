@@ -1,0 +1,36 @@
+name: Copilot Setup Steps
+
+# Runs before a Copilot cloud agent starts work, so it begins with dependencies
+# already installed. Validated on demand and whenever this file changes.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+  pull_request:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+
+jobs:
+  # The job must be named `copilot-setup-steps` or Copilot ignores it.
+  copilot-setup-steps:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node 22 matches ci.yml. Keep the two in step, or the agent will pass
+      # locally and fail the gate it is judged by.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Prove the toolchain is usable before the agent starts, so a broken
+      # environment surfaces here rather than as a confusing failure mid-task.
+      - run: npm run verify
