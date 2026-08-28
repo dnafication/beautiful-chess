@@ -166,8 +166,9 @@ function pseudoLegalMoves(state: GameState): IndexedMove[] {
           to === squareToIndex(state.enPassantTarget) &&
           state.board[to] === undefined
         ) {
-          // The en-passant target is always empty; the captured pawn sits on the
-          // same file as `to` and the same rank as `from`.
+          // The en-passant target square is empty by definition, so the ordinary
+          // capture branch above can never see it — the pawn being taken is
+          // beside the destination rather than on it.
           moves.push({ from, to });
         }
       }

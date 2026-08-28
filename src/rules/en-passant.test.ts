@@ -3,6 +3,7 @@ import {
   applyMove,
   createGameFromFen,
   enPassantTarget,
+  isCheck,
   legalMoves,
   pieceAt,
 } from './index';
@@ -52,19 +53,26 @@ describe('en-passant pin (rank-pin)', () => {
     expect(moves.length).toBeGreaterThan(0);
   });
 
-  // Mirror: an en-passant that reveals discovered check ON THE OPPONENT is legal.
-  //   8/8/8/8/1pP5/8/8/K6k b - c3 0 1
-  // Black pawn b4, white pawn c4, black king h1, white king a1.
-  // bxc3 is legal; it removes the white c4 pawn which was shielding nothing (
-  // the kings are far apart).  We just confirm the move is generated and
-  // the resulting position has no black pawn on b4 and no white pawn on c4.
-  it('allows en-passant that does not expose the mover king', () => {
-    const game = createGameFromFen('8/8/8/8/1pP5/8/8/K6k b - c3 0 1');
+  // The mirror case, and the reason the rule cannot be stated as "en passant is
+  // illegal when it clears a rank": clearing the rank is only forbidden when it
+  // exposes the mover's own king. Exposing the opponent's is a discovered check
+  // and is perfectly legal.
+  //   7k/8/8/8/KpP4r/8/8/8 b - c3 0 1
+  // Rank 4 holds, in order, the white king on a4, the black pawn on b4, the
+  // white pawn on c4 and the black rook on h4. The two pawns are the only thing
+  // standing between that rook and that king, and bxc3 removes both at once —
+  // the same double clearance as the pin test, aimed the other way.
+  it('allows en-passant that discovers check on the opponent king', () => {
+    const game = createGameFromFen('7k/8/8/8/KpP4r/8/8/8 b - c3 0 1');
+    expect(isCheck(game)).toBe(false);
+
     const moves = legalMoves(game);
     expect(moves.some((m) => m.from === 'b4' && m.to === 'c3')).toBe(true);
+
     const after = applyMove(game, { from: 'b4', to: 'c3' });
     expect(pieceAt(after, 'c3')).toEqual({ color: 'black', type: 'pawn' });
-    expect(pieceAt(after, 'c4')).toBeUndefined();
     expect(pieceAt(after, 'b4')).toBeUndefined();
+    expect(pieceAt(after, 'c4')).toBeUndefined();
+    expect(isCheck(after)).toBe(true);
   });
 });
