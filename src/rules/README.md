@@ -117,6 +117,11 @@ something is missing, add a function to the module rather than opening up the va
 
 The same rule applies to tests. They import from the module root like any other consumer.
 
+The one exception is `perft.ts`, the correctness oracle for move generation. It is a test tool
+rather than app surface, so it is not re-exported from `index.ts` and `perft.test.ts` imports it
+directly. `perft.ts` itself imports only from `./index`, which is what makes "perft runs against
+the public interface" visible in one line rather than merely claimed.
+
 ## FEN notes
 
 Two things differ from what you may expect.
