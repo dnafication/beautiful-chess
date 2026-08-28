@@ -59,12 +59,12 @@ pieceAt(endgame, 'a5'); // { color: 'white', type: 'king' }
 
 ### Making moves
 
-| Function                        | Returns             | Notes                                                        |
-| ------------------------------- | ------------------- | ------------------------------------------------------------ |
-| `legalMoves(game)`              | `readonly Move[]`   | Every legal move available to the side to move.              |
-| `legalDestinations(game, from)` | `readonly Square[]` | Legal destination squares for the piece on `from`.           |
-| `applyMove(game, move)`         | `Game`              | Returns a new game; throws `IllegalMoveError` if not legal.  |
-| `isCheck(game)`                 | boolean             | Whether the side to move is in check.                        |
+| Function                        | Returns             | Notes                                                       |
+| ------------------------------- | ------------------- | ----------------------------------------------------------- |
+| `legalMoves(game)`              | `readonly Move[]`   | Every legal move available to the side to move.             |
+| `legalDestinations(game, from)` | `readonly Square[]` | Legal destination squares for the piece on `from`.          |
+| `applyMove(game, move)`         | `Game`              | Returns a new game; throws `IllegalMoveError` if not legal. |
+| `isCheck(game)`                 | boolean             | Whether the side to move is in check.                       |
 
 ### Types
 
