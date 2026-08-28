@@ -63,11 +63,11 @@ export function legalDestinations(game: Game, from: Square): readonly Square[] {
 export function applyMove(game: Game, move: Move): Game {
   const state = toGameState(game);
   const indexedMove = toIndexedMove(move);
-  const isLegal = legalIndexedMoves(state).some(
+  const legalMove = legalIndexedMoves(state).find(
     (candidate) => candidate.from === indexedMove.from && candidate.to === indexedMove.to,
   );
-  if (!isLegal) throw new IllegalMoveError('Move is not legal');
-  return fromGameState(applyIndexedMove(state, indexedMove));
+  if (!legalMove) throw new IllegalMoveError('Move is not legal');
+  return fromGameState(applyIndexedMove(state, legalMove));
 }
 
 export function isCheck(game: Game): boolean {

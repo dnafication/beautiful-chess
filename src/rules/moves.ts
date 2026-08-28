@@ -39,6 +39,8 @@ const ROOK_DIRECTIONS = [
   [1, 0],
   [0, 1],
 ] as const;
+const FILE_CHAR_OFFSET = 'a'.charCodeAt(0);
+const RANK_CHAR_OFFSET = '1'.charCodeAt(0);
 
 function other(color: PieceColor): PieceColor {
   return color === 'white' ? 'black' : 'white';
@@ -282,9 +284,12 @@ export function toMove(move: IndexedMove): Move {
 export function toIndexedMove(move: Move): IndexedMove {
   return {
     from: toIndex({
-      file: move.from.charCodeAt(0) - 97,
-      rank: move.from.charCodeAt(1) - 49,
+      file: move.from.charCodeAt(0) - FILE_CHAR_OFFSET,
+      rank: move.from.charCodeAt(1) - RANK_CHAR_OFFSET,
     }),
-    to: toIndex({ file: move.to.charCodeAt(0) - 97, rank: move.to.charCodeAt(1) - 49 }),
+    to: toIndex({
+      file: move.to.charCodeAt(0) - FILE_CHAR_OFFSET,
+      rank: move.to.charCodeAt(1) - RANK_CHAR_OFFSET,
+    }),
   };
 }

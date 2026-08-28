@@ -35,4 +35,9 @@ export class InvalidPositionError extends Error {
   }
 }
 
-export class IllegalMoveError extends Error {}
+export class IllegalMoveError extends Error {
+  constructor(reason: string) {
+    super(reason);
+    this.name = 'IllegalMoveError';
+  }
+}
