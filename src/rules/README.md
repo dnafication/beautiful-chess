@@ -57,6 +57,15 @@ pieceAt(endgame, 'a5'); // { color: 'white', type: 'king' }
 | `halfmoveClock(game)`   | number                | Halfmoves since the last capture or pawn move. |
 | `fullmoveNumber(game)`  | number                | Starts at 1, increments after Black moves.     |
 
+### Making moves
+
+| Function                        | Returns             | Notes                                                       |
+| ------------------------------- | ------------------- | ----------------------------------------------------------- |
+| `legalMoves(game)`              | `readonly Move[]`   | Every legal move available to the side to move.             |
+| `legalDestinations(game, from)` | `readonly Square[]` | Legal destination squares for the piece on `from`.          |
+| `applyMove(game, move)`         | `Game`              | Returns a new game; throws `IllegalMoveError` if not legal. |
+| `isCheck(game)`                 | boolean             | Whether the side to move is in check.                       |
+
 ### Types
 
 ```ts
@@ -76,6 +85,11 @@ interface CastlingRights {
   readonly whiteQueenside: boolean;
   readonly blackKingside: boolean;
   readonly blackQueenside: boolean;
+}
+
+interface Move {
+  readonly from: Square;
+  readonly to: Square;
 }
 ```
 
@@ -103,6 +117,11 @@ something is missing, add a function to the module rather than opening up the va
 
 The same rule applies to tests. They import from the module root like any other consumer.
 
+The one exception is `perft.ts`, the correctness oracle for move generation. It is a test tool
+rather than app surface, so it is not re-exported from `index.ts` and `perft.test.ts` imports it
+directly. `perft.ts` itself imports only from `./index`, which is what makes "perft runs against
+the public interface" visible in one line rather than merely claimed.
+
 ## FEN notes
 
 Two things differ from what you may expect.
@@ -121,7 +140,8 @@ concept and is not this field.
 ## Errors
 
 `createGameFromFen` throws `InvalidPositionError` and never returns a half-built game. Either
-you get a sound position or you get an exception.
+you get a sound position or you get an exception. `applyMove` likewise throws
+`IllegalMoveError` rather than applying a move that is not legal.
 
 ```ts
 import { createGameFromFen, InvalidPositionError } from '../rules';
@@ -149,7 +169,6 @@ Only position setup and reading exist today. Still to come, each behind this sam
 
 | Feature                                           | Ticket |
 | ------------------------------------------------- | ------ |
-| Legal move generation, check and pins             | #4     |
 | En passant                                        | #5     |
 | Castling                                          | #6     |
 | Promotion                                         | #7     |

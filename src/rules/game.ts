@@ -1,7 +1,15 @@
-import type { CastlingRights, Game, Piece, PieceColor, Square } from './types';
+import type { CastlingRights, Game, Move, Piece, PieceColor, Square } from './types';
 import { parseFen, serializeFen } from './fen';
 import { squareToIndex } from './coordinates';
 import { fromGameState, toGameState } from './state';
+import {
+  applyIndexedMove,
+  isInCheck,
+  legalIndexedMoves,
+  toIndexedMove,
+  toMove,
+} from './moves';
+import { IllegalMoveError } from './types';
 
 const STARTING_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
@@ -40,4 +48,29 @@ export function halfmoveClock(game: Game): number {
 
 export function fullmoveNumber(game: Game): number {
   return toGameState(game).fullmoveNumber;
+}
+
+export function legalMoves(game: Game): readonly Move[] {
+  return legalIndexedMoves(toGameState(game)).map(toMove);
+}
+
+export function legalDestinations(game: Game, from: Square): readonly Square[] {
+  return legalMoves(game)
+    .filter((move) => move.from === from)
+    .map((move) => move.to);
+}
+
+export function applyMove(game: Game, move: Move): Game {
+  const state = toGameState(game);
+  const indexedMove = toIndexedMove(move);
+  const legalMove = legalIndexedMoves(state).find(
+    (candidate) => candidate.from === indexedMove.from && candidate.to === indexedMove.to,
+  );
+  if (!legalMove) throw new IllegalMoveError('Move is not legal');
+  return fromGameState(applyIndexedMove(state, legalMove));
+}
+
+export function isCheck(game: Game): boolean {
+  const state = toGameState(game);
+  return isInCheck(state, state.sideToMove);
 }
