@@ -41,13 +41,14 @@ describe('glyphFor', () => {
     for (const piece of allPieces) {
       const { shapes } = glyphFor(piece);
       for (const shape of shapes) {
-        // All shape kinds have at least a stroke colour.
-        expect(
-          HEX_COLOR.test(shape.stroke),
-          `${piece.color} ${piece.type}: stroke on ${shape.kind} is not a hex colour: "${shape.stroke}"`,
-        ).toBe(true);
+        if ('stroke' in shape) {
+          expect(
+            HEX_COLOR.test(shape.stroke),
+            `${piece.color} ${piece.type}: stroke on ${shape.kind} is not a hex colour: "${shape.stroke}"`,
+          ).toBe(true);
+        }
 
-        if (shape.kind === 'filled-path' || shape.kind === 'filled-circle') {
+        if ('fill' in shape) {
           expect(
             HEX_COLOR.test(shape.fill),
             `${piece.color} ${piece.type}: fill on ${shape.kind} is not a hex colour: "${shape.fill}"`,

@@ -45,8 +45,8 @@ function renderShape(shape: ResolvedShape, index: number): React.ReactElement {
           fill={shape.fill}
           stroke={shape.stroke}
           strokeWidth={shape.strokeWidth}
-          strokeLinejoin={shape.strokeLinejoin as 'round'}
-          strokeLinecap={shape.strokeLinecap as 'round'}
+          strokeLinejoin={shape.strokeLinejoin}
+          strokeLinecap={shape.strokeLinecap}
         />
       );
     case 'filled-circle':
@@ -69,8 +69,12 @@ function renderShape(shape: ResolvedShape, index: number): React.ReactElement {
           fill="none"
           stroke={shape.stroke}
           strokeWidth={shape.strokeWidth}
-          strokeLinecap={shape.strokeLinecap as 'round'}
+          strokeLinecap={shape.strokeLinecap}
         />
+      );
+    case 'dot':
+      return (
+        <Circle key={index} cx={shape.cx} cy={shape.cy} r={shape.r} fill={shape.fill} />
       );
   }
 }
@@ -88,11 +92,9 @@ export function Board(): React.ReactElement {
 
   return (
     <View style={{ width: boardSize, height: boardSize }}>
-      {RANKS_TOP_TO_BOTTOM.map((rank) =>
-        FILES.map((file) => {
+      {RANKS_TOP_TO_BOTTOM.map((rank, rankIndex) =>
+        FILES.map((file, fileIndex) => {
           const square: Square = `${file}${rank}`;
-          const fileIndex = FILES.indexOf(file);
-          const rankIndex = RANKS_TOP_TO_BOTTOM.indexOf(rank);
           // Light square when file+rank indices sum to an even number,
           // matching standard chess board colouring (a1 is always dark).
           const isLight = (fileIndex + rankIndex) % 2 === 0;

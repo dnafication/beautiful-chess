@@ -58,7 +58,23 @@ export interface StrokePath {
   readonly stroke: InkRole;
 }
 
-export type Shape = FilledPath | FilledCircle | StrokePath;
+/**
+ * A fill-only circle (dot() in the prototype): the knight's eye.
+ *
+ * It carries no stroke, and that is the whole point of it being its own kind.
+ * Drawing it as a stroked circle would add half the stroke width to its radius
+ * all the way round, and at radius 3 against a stroke of 3.5 that nearly
+ * doubles the eye.
+ */
+export interface Dot {
+  readonly kind: 'dot';
+  readonly cx: number;
+  readonly cy: number;
+  readonly r: number;
+  readonly fill: InkRole;
+}
+
+export type Shape = FilledPath | FilledCircle | StrokePath | Dot;
 
 // ── Resolved shape (concrete colours) ────────────────────────────────────────
 
@@ -68,8 +84,8 @@ export interface ResolvedFilledPath {
   readonly fill: string;
   readonly stroke: string;
   readonly strokeWidth: number;
-  readonly strokeLinejoin: string;
-  readonly strokeLinecap: string;
+  readonly strokeLinejoin: 'round';
+  readonly strokeLinecap: 'round';
 }
 
 export interface ResolvedFilledCircle {
@@ -87,11 +103,19 @@ export interface ResolvedStrokePath {
   readonly d: string;
   readonly stroke: string;
   readonly strokeWidth: number;
-  readonly strokeLinecap: string;
+  readonly strokeLinecap: 'round';
+}
+
+export interface ResolvedDot {
+  readonly kind: 'dot';
+  readonly cx: number;
+  readonly cy: number;
+  readonly r: number;
+  readonly fill: string;
 }
 
 export type ResolvedShape =
-  ResolvedFilledPath | ResolvedFilledCircle | ResolvedStrokePath;
+  ResolvedFilledPath | ResolvedFilledCircle | ResolvedStrokePath | ResolvedDot;
 
 export interface Glyph {
   readonly viewBox: string;
@@ -117,13 +141,12 @@ const fc = (cx: number, cy: number, r: number): FilledCircle => ({
 });
 
 /** dot() in the prototype: fill is the INVERSE of the body (accent). */
-const dot = (cx: number, cy: number, r: number): FilledCircle => ({
-  kind: 'filled-circle',
+const dot = (cx: number, cy: number, r: number): Dot => ({
+  kind: 'dot',
   cx,
   cy,
   r,
   fill: 'accent',
-  stroke: 'accent', // no visible stroke; stroke=fill so it blends away
 });
 
 /** The bishop's mitre slit: accent colour, stroke-only. */
@@ -227,6 +250,14 @@ function resolveShape(shape: Shape, ink: Record<InkRole, string>): ResolvedShape
         stroke: ink[shape.stroke],
         strokeWidth: 5,
         strokeLinecap: 'round',
+      };
+    case 'dot':
+      return {
+        kind: 'dot',
+        cx: shape.cx,
+        cy: shape.cy,
+        r: shape.r,
+        fill: ink[shape.fill],
       };
   }
 }
