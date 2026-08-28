@@ -1,7 +1,7 @@
-import type { CastlingRights, Game, Piece, PieceColor, Square } from './types';
+import type { Board, CastlingRights, Game, Piece, PieceColor, Square } from './types';
 
 export interface GameState {
-  readonly board: readonly (Piece | undefined)[];
+  readonly board: Board;
   readonly sideToMove: PieceColor;
   readonly castlingRights: CastlingRights;
   readonly enPassantTarget: Square | undefined;

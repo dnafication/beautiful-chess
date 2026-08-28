@@ -1,5 +1,6 @@
 import type { CastlingRights, Game, Piece, PieceColor, Square } from './types';
-import { parseFen, serializeFen, squareToIndex } from './fen';
+import { parseFen, serializeFen } from './fen';
+import { squareToIndex } from './coordinates';
 import { fromGameState, toGameState } from './state';
 
 const STARTING_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
