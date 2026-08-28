@@ -15,9 +15,9 @@ import React from 'react';
 import { useWindowDimensions, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { createGame, pieceAt } from '../rules';
+import type { File, Rank, Square } from '../rules';
 import { glyphFor } from './pieces/staunton';
 import type { ResolvedShape } from './pieces/staunton';
-import type { File, Rank, Square } from '../rules';
 
 // ── Square colours ─────────────────────────────────────────────────────────
 // Restrained pair that sits with the #2a2a28 / #f6f4ef piece palette:

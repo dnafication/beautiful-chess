@@ -9,6 +9,15 @@
  * it testable in plain Node (vitest collects *.test.ts only) and lets the
  * Board use the resolved colours however it likes.
  *
+ * Three things are exported and they are the whole contract: `glyphFor`, the
+ * `Glyph` it returns, and the `ResolvedShape` union a renderer must be able to
+ * draw. Everything above them — the ink roles, the authoring shape kinds, the
+ * palette — is this set's own business and a replacement set need not have any
+ * of it. `ResolvedShape` stays exported deliberately rather than being derived
+ * at the call site: a renderer has to switch on every kind it might be handed,
+ * so the list of kinds is part of the contract whether or not it has a name,
+ * and naming it means a new kind breaks the switch instead of being ignored.
+ *
  * Artwork: Variant E from the piece-set prototype (`prototype/piece-set`
  * branch). Original work written from scratch in this repository. The SVG
  * path data is ported unchanged because it is already valid SVG accepted
@@ -28,13 +37,13 @@ const LIGHT = '#f6f4ef';
 // drawing serves both white and black pieces. The resolver below maps roles
 // to concrete strings before returning.
 
-export type InkRole = 'body' | 'accent' | 'edge';
+type InkRole = 'body' | 'accent' | 'edge';
 
 // ── Shape discriminated union ────────────────────────────────────────────────
 // Only the three shape kinds Variant E actually uses.
 
 /** A filled-and-stroked path (solid() in the prototype). */
-export interface FilledPath {
+interface FilledPath {
   readonly kind: 'filled-path';
   readonly d: string;
   readonly fill: InkRole;
@@ -42,7 +51,7 @@ export interface FilledPath {
 }
 
 /** A filled-and-stroked circle (circle() in the prototype). */
-export interface FilledCircle {
+interface FilledCircle {
   readonly kind: 'filled-circle';
   readonly cx: number;
   readonly cy: number;
@@ -52,7 +61,7 @@ export interface FilledCircle {
 }
 
 /** A stroke-only path (the bishop's mitre slit in the prototype). */
-export interface StrokePath {
+interface StrokePath {
   readonly kind: 'stroke-path';
   readonly d: string;
   readonly stroke: InkRole;
@@ -66,7 +75,7 @@ export interface StrokePath {
  * all the way round, and at radius 3 against a stroke of 3.5 that nearly
  * doubles the eye.
  */
-export interface Dot {
+interface Dot {
   readonly kind: 'dot';
   readonly cx: number;
   readonly cy: number;
@@ -74,11 +83,11 @@ export interface Dot {
   readonly fill: InkRole;
 }
 
-export type Shape = FilledPath | FilledCircle | StrokePath | Dot;
+type Shape = FilledPath | FilledCircle | StrokePath | Dot;
 
 // ── Resolved shape (concrete colours) ────────────────────────────────────────
 
-export interface ResolvedFilledPath {
+interface ResolvedFilledPath {
   readonly kind: 'filled-path';
   readonly d: string;
   readonly fill: string;
@@ -88,7 +97,7 @@ export interface ResolvedFilledPath {
   readonly strokeLinecap: 'round';
 }
 
-export interface ResolvedFilledCircle {
+interface ResolvedFilledCircle {
   readonly kind: 'filled-circle';
   readonly cx: number;
   readonly cy: number;
@@ -98,7 +107,7 @@ export interface ResolvedFilledCircle {
   readonly strokeWidth: number;
 }
 
-export interface ResolvedStrokePath {
+interface ResolvedStrokePath {
   readonly kind: 'stroke-path';
   readonly d: string;
   readonly stroke: string;
@@ -106,7 +115,7 @@ export interface ResolvedStrokePath {
   readonly strokeLinecap: 'round';
 }
 
-export interface ResolvedDot {
+interface ResolvedDot {
   readonly kind: 'dot';
   readonly cx: number;
   readonly cy: number;
@@ -267,9 +276,8 @@ function resolveShape(shape: Shape, ink: Record<InkRole, string>): ResolvedShape
 /**
  * Resolve a piece to a renderable glyph.
  *
- * This is the ONLY function the rest of the UI calls. Everything else in this
- * file is internal. To swap the artwork, replace this module: keep the same
- * `glyphFor` signature and the Board needs no changes.
+ * This is the ONLY function the rest of the UI calls. To swap the artwork,
+ * replace this module keeping this signature; the Board needs no changes.
  */
 export function glyphFor(piece: Piece): Glyph {
   const ink = palette(piece.color);
