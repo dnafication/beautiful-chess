@@ -76,3 +76,20 @@ describe('en-passant pin (rank-pin)', () => {
     expect(isCheck(after)).toBe(true);
   });
 });
+
+describe('en-passant target with nothing to capture', () => {
+  // A position's en-passant field is the literal FEN field, recorded after any
+  // double pawn push, so a position parsed from an arbitrary FEN can name a
+  // target square with no pawn beside it. Offering the capture anyway would let
+  // a pawn move diagonally onto an empty square and take nothing, which is not
+  // a chess move at all.
+  it('does not offer a capture when no pawn sits beside the target', () => {
+    const game = createGameFromFen('4k3/8/8/3P4/8/8/8/4K3 w - e6 0 1');
+    expect(legalMoves(game).some((m) => m.from === 'd5' && m.to === 'e6')).toBe(false);
+  });
+
+  it('does not offer a capture when the pawn beside the target is the mover own', () => {
+    const game = createGameFromFen('4k3/8/8/3PP3/8/8/8/4K3 w - e6 0 1');
+    expect(legalMoves(game).some((m) => m.from === 'd5' && m.to === 'e6')).toBe(false);
+  });
+});

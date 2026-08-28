@@ -126,6 +126,19 @@ function addSlides(
   }
 }
 
+// The square an en-passant capture actually takes from is beside the
+// destination, not on it, so the pawn there has to be found before the capture
+// can be offered.
+function isEnemyPawn(
+  state: GameState,
+  index: number | undefined,
+  color: PieceColor,
+): boolean {
+  if (index === undefined) return false;
+  const piece = state.board[index];
+  return piece?.type === 'pawn' && piece.color === other(color);
+}
+
 function pseudoLegalMoves(state: GameState): IndexedMove[] {
   const moves: IndexedMove[] = [];
   for (let from = 0; from < state.board.length; from++) {
@@ -164,11 +177,15 @@ function pseudoLegalMoves(state: GameState): IndexedMove[] {
         } else if (
           state.enPassantTarget !== undefined &&
           to === squareToIndex(state.enPassantTarget) &&
-          state.board[to] === undefined
+          state.board[to] === undefined &&
+          isEnemyPawn(state, indexAt(file + fileOffset, rank), piece.color)
         ) {
           // The en-passant target square is empty by definition, so the ordinary
           // capture branch above can never see it — the pawn being taken is
-          // beside the destination rather than on it.
+          // beside the destination rather than on it. That pawn is looked for
+          // rather than assumed, because a position parsed from FEN carries its
+          // en-passant field verbatim and may name a square with nothing beside
+          // it to take.
           moves.push({ from, to });
         }
       }
