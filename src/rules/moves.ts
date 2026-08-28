@@ -155,12 +155,19 @@ function pseudoLegalMoves(state: GameState): IndexedMove[] {
       }
       for (const fileOffset of [-1, 1]) {
         const to = indexAt(file + fileOffset, rank + direction);
+        if (to === undefined || rank + direction === promotionRank) continue;
         if (
-          to !== undefined &&
-          rank + direction !== promotionRank &&
           state.board[to]?.color === other(piece.color) &&
           state.board[to]?.type !== 'king'
         ) {
+          moves.push({ from, to });
+        } else if (
+          state.enPassantTarget !== undefined &&
+          to === squareToIndex(state.enPassantTarget) &&
+          state.board[to] === undefined
+        ) {
+          // The en-passant target is always empty; the captured pawn sits on the
+          // same file as `to` and the same rank as `from`.
           moves.push({ from, to });
         }
       }
@@ -262,13 +269,17 @@ export function applyIndexedMove(state: GameState, move: IndexedMove): GameState
   board[move.from] = undefined;
   board[move.to] = piece;
   const isPawnMove = piece.type === 'pawn';
-  const { rank: fromRank } = fromIndex(move.from);
-  const { rank: toRank } = fromIndex(move.to);
+  const { file: fromFile, rank: fromRank } = fromIndex(move.from);
+  const { file: toFile, rank: toRank } = fromIndex(move.to);
+
+  // En-passant: pawn changes file onto an empty square — the captured pawn
+  // sits on the same file as `to` and the same rank as `from`.
+  if (isPawnMove && fromFile !== toFile && captured === undefined) {
+    board[toIndex({ file: toFile, rank: fromRank })] = undefined;
+  }
   const enPassantTarget =
     isPawnMove && Math.abs(toRank - fromRank) === 2
-      ? indexToSquare(
-          toIndex({ file: fromIndex(move.from).file, rank: (fromRank + toRank) / 2 }),
-        )
+      ? indexToSquare(toIndex({ file: fromFile, rank: (fromRank + toRank) / 2 }))
       : undefined;
   return {
     board,
