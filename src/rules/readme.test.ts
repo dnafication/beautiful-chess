@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  applyMove,
   createGame,
   createGameFromFen,
   InvalidPositionError,
+  legalDestinations,
   pieceAt,
   sideToMove,
   toFen,
@@ -43,6 +45,19 @@ describe('README examples stay true', () => {
     for (const fen of bad) {
       expect(() => createGameFromFen(fen), fen).toThrow(InvalidPositionError);
     }
+  });
+
+  it('castling block is accurate', () => {
+    const game = createGameFromFen('r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1');
+
+    expect(legalDestinations(game, 'e1')).toContain('g1');
+    expect(legalDestinations(game, 'e1')).toContain('c1');
+    expect(legalDestinations(game, 'e1')).not.toContain('h1');
+
+    const after = applyMove(game, { from: 'e1', to: 'g1' });
+    expect(pieceAt(after, 'g1')).toEqual({ color: 'white', type: 'king' });
+    expect(pieceAt(after, 'f1')).toEqual({ color: 'white', type: 'rook' });
+    expect(pieceAt(after, 'h1')).toBeUndefined();
   });
 
   it('opacity and Square typing claims hold', () => {

@@ -46,18 +46,66 @@ const ROOK_DIRECTIONS = [
   [1, 0],
   [0, 1],
 ] as const;
+// Each castle stated once, and the only place the four castles are described.
+// `mustBeEmpty` is the whole corridor between king and rook — queenside that
+// includes b1/b8, which the rook crosses. `kingPath` is only the king's own
+// squares: where it stands, what it crosses and where it lands. Keeping the two
+// lists apart is what encodes FIDE 3.8's asymmetry, that the rook may pass
+// through an attacked square and the king may not.
+//
 // A castling right is lost when its king moves, or when its rook's home square
-// is vacated or captured on. Stating the four squares once keeps the mapping
-// between a right and its rook in one place.
-const CASTLING_RIGHT_SOURCES = [
-  { right: 'whiteKingside', color: 'white', rookHome: squareToIndex('h1') },
-  { right: 'whiteQueenside', color: 'white', rookHome: squareToIndex('a1') },
-  { right: 'blackKingside', color: 'black', rookHome: squareToIndex('h8') },
-  { right: 'blackQueenside', color: 'black', rookHome: squareToIndex('a8') },
+// is vacated or captured on, so `updatedCastlingRights` reads `rookFrom` as the
+// rook's home and this table serves that too.
+const CASTLES = [
+  {
+    right: 'whiteKingside',
+    color: 'white',
+    kingFrom: squareToIndex('e1'),
+    kingTo: squareToIndex('g1'),
+    rookFrom: squareToIndex('h1'),
+    rookTo: squareToIndex('f1'),
+    mustBeEmpty: [squareToIndex('f1'), squareToIndex('g1')],
+    kingPath: [squareToIndex('e1'), squareToIndex('f1'), squareToIndex('g1')],
+  },
+  {
+    right: 'whiteQueenside',
+    color: 'white',
+    kingFrom: squareToIndex('e1'),
+    kingTo: squareToIndex('c1'),
+    rookFrom: squareToIndex('a1'),
+    rookTo: squareToIndex('d1'),
+    mustBeEmpty: [squareToIndex('b1'), squareToIndex('c1'), squareToIndex('d1')],
+    kingPath: [squareToIndex('e1'), squareToIndex('d1'), squareToIndex('c1')],
+  },
+  {
+    right: 'blackKingside',
+    color: 'black',
+    kingFrom: squareToIndex('e8'),
+    kingTo: squareToIndex('g8'),
+    rookFrom: squareToIndex('h8'),
+    rookTo: squareToIndex('f8'),
+    mustBeEmpty: [squareToIndex('f8'), squareToIndex('g8')],
+    kingPath: [squareToIndex('e8'), squareToIndex('f8'), squareToIndex('g8')],
+  },
+  {
+    right: 'blackQueenside',
+    color: 'black',
+    kingFrom: squareToIndex('e8'),
+    kingTo: squareToIndex('c8'),
+    rookFrom: squareToIndex('a8'),
+    rookTo: squareToIndex('d8'),
+    mustBeEmpty: [squareToIndex('b8'), squareToIndex('c8'), squareToIndex('d8')],
+    kingPath: [squareToIndex('e8'), squareToIndex('d8'), squareToIndex('c8')],
+  },
 ] as const satisfies readonly {
   right: keyof CastlingRights;
   color: PieceColor;
-  rookHome: number;
+  kingFrom: number;
+  kingTo: number;
+  rookFrom: number;
+  rookTo: number;
+  mustBeEmpty: readonly number[];
+  kingPath: readonly number[];
 }[];
 
 function other(color: PieceColor): PieceColor {
@@ -70,9 +118,9 @@ function updatedCastlingRights(
   move: IndexedMove,
 ): CastlingRights {
   const rights: Record<keyof CastlingRights, boolean> = { ...state.castlingRights };
-  for (const { right, color, rookHome } of CASTLING_RIGHT_SOURCES) {
+  for (const { right, color, rookFrom } of CASTLES) {
     const kingMoved = piece.color === color && piece.type === 'king';
-    const rookHomeTouched = move.from === rookHome || move.to === rookHome;
+    const rookHomeTouched = move.from === rookFrom || move.to === rookFrom;
     if (kingMoved || rookHomeTouched) rights[right] = false;
   }
   return rights;
@@ -139,6 +187,35 @@ function isEnemyPawn(
   return piece?.type === 'pawn' && piece.color === other(color);
 }
 
+// Castling is generated here rather than left to the legality filter, because
+// the filter only ever inspects the position after the move — it can see that
+// the king landed in check, but not that it started there or crossed an
+// attacked square on the way.
+function addCastles(
+  state: GameState,
+  moves: IndexedMove[],
+  from: number,
+  color: PieceColor,
+): void {
+  for (const castle of CASTLES) {
+    if (castle.color !== color || castle.kingFrom !== from) continue;
+    if (!state.castlingRights[castle.right]) continue;
+
+    // A right is only structurally validated in FEN, so a position can claim
+    // one with no rook to exercise it. The rook is looked for, not assumed.
+    const rook = state.board[castle.rookFrom];
+    if (rook?.type !== 'rook' || rook.color !== color) continue;
+
+    if (castle.mustBeEmpty.some((index) => state.board[index] !== undefined)) continue;
+    const attacked = castle.kingPath.some((index) =>
+      isSquareAttacked(state, index, other(color)),
+    );
+    if (attacked) continue;
+
+    moves.push({ from: castle.kingFrom, to: castle.kingTo });
+  }
+}
+
 function pseudoLegalMoves(state: GameState): IndexedMove[] {
   const moves: IndexedMove[] = [];
   for (let from = 0; from < state.board.length; from++) {
@@ -202,6 +279,7 @@ function pseudoLegalMoves(state: GameState): IndexedMove[] {
       ]);
     } else {
       addSteps(state, moves, from, piece.color, KING_OFFSETS);
+      addCastles(state, moves, from, piece.color);
     }
   }
   return moves;
@@ -294,6 +372,19 @@ export function applyIndexedMove(state: GameState, move: IndexedMove): GameState
   // sits on the same file as `to` and the same rank as `from`.
   if (isPawnMove && fromFile !== toFile && captured === undefined) {
     board[toIndex({ file: toFile, rank: fromRank })] = undefined;
+  }
+
+  // Castling: the same table that generated the move says where its rook goes,
+  // so the geometry is stated once. A king is the only piece that can move two
+  // files at once, which is what makes the lookup unambiguous.
+  if (piece.type === 'king') {
+    const castle = CASTLES.find(
+      (candidate) => candidate.kingFrom === move.from && candidate.kingTo === move.to,
+    );
+    if (castle) {
+      board[castle.rookTo] = board[castle.rookFrom];
+      board[castle.rookFrom] = undefined;
+    }
   }
   const enPassantTarget =
     isPawnMove && Math.abs(toRank - fromRank) === 2
