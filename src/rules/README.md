@@ -160,7 +160,15 @@ capturedPieces(promoted); // { byWhite: [], byBlack: [] } - the pawn was promote
 `capturedPieces` returns `byWhite` (the Black pieces White has captured) and `byBlack` (the
 White pieces Black has captured), each grouped by type in the fixed order pawn, knight, bishop,
 rook, queen, so the Tray in #15 has nothing to decide. Both are derived by comparing the board
-against the full starting complement, so a promoted pawn is never mistaken for a captured one.
+against the full starting complement, so promoting without capturing never reports a phantom
+captured pawn.
+
+The board alone cannot always settle this, and the interface does not pretend otherwise. One
+queen on the board is either the original or a promotion with the original captured, and both
+leave the same pieces standing. The derivation reads the board as the fewest promotions that
+explain it, so a side that promoted twice and lost its first queen is reported as having
+promoted once and lost a pawn. Only move history — #10 — can tell those apart.
+`materialAdvantage` is unaffected either way, because it only ever counts what stands.
 
 ```ts
 const game = createGameFromFen(

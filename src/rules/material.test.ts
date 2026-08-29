@@ -109,6 +109,25 @@ describe('capturedPieces', () => {
       { color: 'black', type: 'queen' },
     ]);
   });
+
+  // The limit of board-derivation, pinned rather than papered over. White here
+  // has two queens and six pawns. That is equally the story of one promotion
+  // with a pawn captured, and of two promotions with the original queen
+  // captured. Nothing on the board separates them, so this reads the board as
+  // the fewest promotions that explain it and reports the captured pawn. Move
+  // history (#10) is what would decide it.
+  it('reads an ambiguous board as the fewest promotions that explain it', () => {
+    const game = createGameFromFen('4k3/8/8/8/8/8/PPPPPP2/3QQK2 w - - 0 1');
+
+    expect(capturedPieces(game).byBlack).toContainEqual({
+      color: 'white',
+      type: 'pawn',
+    });
+    expect(capturedPieces(game).byBlack).not.toContainEqual({
+      color: 'white',
+      type: 'queen',
+    });
+  });
 });
 
 // Applying a real promoting move (no capture) reflects the promotion in the

@@ -48,9 +48,18 @@ export function capturedPiecesOf(board: Board): CapturedPieces {
 }
 
 // The pieces of `color` that have left the board, derived by comparing what
-// stands against the starting complement. Promotions are accounted for so no
-// phantom captured pawn is reported: every non-pawn piece beyond the starting
-// count is a promoted pawn, and each one explains one absent pawn.
+// stands against the starting complement. Promotions are accounted for, so the
+// ordinary case of promoting without capturing reports no phantom captured
+// pawn: every non-pawn piece beyond the starting count is a promoted pawn, and
+// each one explains one absent pawn.
+//
+// The board alone cannot always settle this. One queen on the board is either
+// the original or a promotion with the original captured, and those tell the
+// same story in pieces. This reads the board as the fewest promotions that
+// explain it, so a side that promoted twice and lost its first queen is
+// reported as having promoted once and lost a pawn. Move history, which #10
+// adds, is what would decide it; the Material Advantage number is unaffected
+// either way, because it only ever counts what stands.
 function missingPieces(board: Board, color: PieceColor): readonly Piece[] {
   const onBoard = countByType(board, color);
 
