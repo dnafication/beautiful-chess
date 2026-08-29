@@ -22,11 +22,11 @@ import {
   gameStatus,
   isCheck,
   legalDestinations,
-  legalMoves,
   pieceAt,
   sideToMove,
 } from '../rules';
 import type { File, Game, Move, Piece, Rank, Square } from '../rules';
+import { promotionPrompt } from './promotion';
 
 const FILES: readonly File[] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 const RANKS: readonly Rank[] = ['1', '2', '3', '4', '5', '6', '7', '8'];
@@ -55,12 +55,14 @@ export interface Relocation {
 
 /**
  * What a tap resolves to given the current selection. `select` sets or switches
- * the picked-up piece, `move` plays a legal move, `clear` puts the piece back
- * down, and `none` is a tap that changes nothing.
+ * the picked-up piece, `move` plays a legal move, `promote` lands a pawn on the
+ * far rank and hands off to the promotion picker for the piece it becomes,
+ * `clear` puts the piece back down, and `none` is a tap that changes nothing.
  */
 export type TapOutcome =
   | { readonly kind: 'select'; readonly selection: Selection }
   | { readonly kind: 'move'; readonly move: Move }
+  | { readonly kind: 'promote'; readonly from: Square; readonly to: Square }
   | { readonly kind: 'clear' }
   | { readonly kind: 'none' };
 
@@ -103,23 +105,13 @@ export function selectionFor(game: Game, square: Square): Selection | undefined 
 }
 
 /**
- * Builds the move landing on `to`. Promotion has no picker yet (#14), so it
- * defaults to a queen — the choice a player makes in the overwhelming majority
- * of games — rather than blocking the move.
- */
-function resolveMove(game: Game, from: Square, to: Square): Move {
-  const promotes = legalMoves(game).some(
-    (move) => move.from === from && move.to === to && move.promotion !== undefined,
-  );
-  return promotes ? { from, to, promotion: 'queen' } : { from, to };
-}
-
-/**
  * Resolves a tap on `square` against the current selection into an outcome the
  * board can act on. With nothing selected a tap only picks up one of the
  * player's own pieces. With a piece selected: tapping it again clears it,
- * tapping a legal destination plays the move, tapping another of the player's
- * pieces switches selection directly, and anything else is left untouched.
+ * tapping a legal destination plays the move — or, when that move lands a pawn
+ * on the far rank, hands off to the promotion picker rather than choosing a
+ * piece for the player — tapping another of the player's pieces switches
+ * selection directly, and anything else is left untouched.
  */
 export function tapSquare(
   game: Game,
@@ -139,7 +131,9 @@ export function tapSquare(
     return { kind: 'clear' };
   }
   if (selection.destinations.some((destination) => destination.square === square)) {
-    return { kind: 'move', move: resolveMove(game, selection.from, square) };
+    return promotionPrompt(game, selection.from, square) !== undefined
+      ? { kind: 'promote', from: selection.from, to: square }
+      : { kind: 'move', move: { from: selection.from, to: square } };
   }
   const switched = selectionFor(game, square);
   return switched === undefined

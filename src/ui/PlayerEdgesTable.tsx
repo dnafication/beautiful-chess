@@ -1,7 +1,7 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { applyMove, createGame, isCheck, sideToMove } from '../rules';
-import type { Game, Move, PieceColor, Square } from '../rules';
+import type { Game, Move, PieceColor, PromotionPieceType, Square } from '../rules';
 import { Board } from './Board';
 import {
   calculatePlayerEdgesLayout,
@@ -9,6 +9,9 @@ import {
   playerEdgePresentation,
   type PlayerEdge,
 } from './playerEdges';
+import { promotionChoice, promotionPrompt } from './promotion';
+import type { PromotionPrompt } from './promotion';
+import { PromotionPicker } from './PromotionPicker';
 import { moveRelocations, selectionFor, tapSquare } from './selection';
 import type { Relocation, Selection } from './selection';
 
@@ -34,6 +37,7 @@ export function PlayerEdgesTable(): React.ReactElement {
   const [selection, setSelection] = useState<Selection | undefined>(undefined);
   const [lastMove, setLastMove] = useState<Move | undefined>(undefined);
   const [arrival, setArrival] = useState<Arrival | undefined>(undefined);
+  const [promotion, setPromotion] = useState<PromotionPrompt | undefined>(undefined);
   const nonce = useRef(0);
 
   const activeColor = sideToMove(game);
@@ -65,6 +69,12 @@ export function PlayerEdgesTable(): React.ReactElement {
         case 'move':
           playMove(game, outcome.move, true);
           break;
+        case 'promote':
+          // Nothing is applied yet: the pawn stays put and the picker decides
+          // the piece before the one move is played.
+          setSelection(undefined);
+          setPromotion(promotionPrompt(game, outcome.from, outcome.to));
+          break;
         case 'none':
           break;
       }
@@ -79,10 +89,23 @@ export function PlayerEdgesTable(): React.ReactElement {
         // The drag already carried the piece to its square, so a settling
         // animation from the origin would read as a backward jump.
         playMove(game, outcome.move, false);
+      } else if (outcome.kind === 'promote') {
+        setPromotion(promotionPrompt(game, outcome.from, outcome.to));
       }
       setSelection(undefined);
     },
     [game, playMove],
+  );
+
+  const handleChoosePromotion = useCallback(
+    (piece: PromotionPieceType) => {
+      if (promotion === undefined) {
+        return;
+      }
+      playMove(game, promotionChoice(promotion, piece), true);
+      setPromotion(undefined);
+    },
+    [game, promotion, playMove],
   );
 
   const renderPlayerEdge = (playerEdge: PlayerEdge) => {
@@ -141,15 +164,24 @@ export function PlayerEdgesTable(): React.ReactElement {
         style={[styles.table, { height: layout.tableHeight, width: layout.boardSize }]}
       >
         {renderPlayerEdge('far')}
-        <Board
-          size={layout.boardSize}
-          game={game}
-          selection={selection}
-          lastMove={lastMove}
-          arrival={arrival}
-          onTapSquare={handleTapSquare}
-          onDropMove={handleDropMove}
-        />
+        <View style={{ width: layout.boardSize, height: layout.boardSize }}>
+          <Board
+            size={layout.boardSize}
+            game={game}
+            selection={selection}
+            lastMove={lastMove}
+            arrival={arrival}
+            onTapSquare={handleTapSquare}
+            onDropMove={handleDropMove}
+          />
+          {promotion !== undefined && (
+            <PromotionPicker
+              prompt={promotion}
+              size={layout.boardSize}
+              onChoose={handleChoosePromotion}
+            />
+          )}
+        </View>
         {renderPlayerEdge('near')}
       </View>
     </View>
