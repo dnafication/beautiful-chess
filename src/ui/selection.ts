@@ -25,7 +25,7 @@ import {
   pieceAt,
   sideToMove,
 } from '../rules';
-import type { File, Game, Move, Rank, Square } from '../rules';
+import type { File, Game, Move, Piece, Rank, Square } from '../rules';
 
 const FILES: readonly File[] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 const RANKS: readonly Rank[] = ['1', '2', '3', '4', '5', '6', '7', '8'];
@@ -148,6 +148,14 @@ export function checkedKingSquare(game: Game): Square | undefined {
  * position before and after. Most moves relocate one piece; castling relocates
  * the king and the rook, so animation must not assume one piece per move.
  */
+// Two squares hold the same thing only when the colour matches as well as the
+// type. Comparing types alone makes a pawn taking a pawn look like no change at
+// all, which is the most ordinary capture in chess.
+function samePiece(left: Piece | undefined, right: Piece | undefined): boolean {
+  if (left === undefined || right === undefined) return left === right;
+  return left.color === right.color && left.type === right.type;
+}
+
 export function moveRelocations(game: Game, move: Move): readonly Relocation[] {
   const after = applyMove(game, move);
   const departures: Square[] = [];
@@ -156,10 +164,10 @@ export function moveRelocations(game: Game, move: Move): readonly Relocation[] {
   for (const square of ALL_SQUARES) {
     const before = pieceAt(game, square);
     const now = pieceAt(after, square);
-    if (before !== undefined && (now === undefined || now.type !== before.type)) {
+    if (before !== undefined && !samePiece(before, now)) {
       departures.push(square);
     }
-    if (now !== undefined && (before === undefined || before.type !== now.type)) {
+    if (now !== undefined && !samePiece(before, now)) {
       arrivals.push(square);
     }
   }

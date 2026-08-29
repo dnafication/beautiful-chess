@@ -147,6 +147,17 @@ describe('the pieces relocated by a move', () => {
     ]);
   });
 
+  // A capture of a like piece — pawn takes pawn, rook takes rook — leaves the
+  // same kind of piece standing on the target square. Only the colour changed,
+  // so a diff blind to colour sees nothing move and the board renders a capture
+  // as if nothing happened. These are the most ordinary captures in chess.
+  it('reports the mover when a piece captures one of its own kind', () => {
+    const game = createGameFromFen('4k3/8/8/3p4/4P3/8/8/4K3 b - - 0 1');
+    expect(moveRelocations(game, { from: 'd5', to: 'e4' })).toEqual([
+      { from: 'd5', to: 'e4' },
+    ]);
+  });
+
   it('reports the promoting pawn as a relocation to the far square', () => {
     const game = createGameFromFen('4k3/P7/8/8/8/8/8/4K3 w - - 0 1');
     expect(moveRelocations(game, { from: 'a7', to: 'a8', promotion: 'queen' })).toEqual([
