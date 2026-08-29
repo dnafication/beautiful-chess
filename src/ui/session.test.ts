@@ -1,15 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { applyMove, createGame, createGameFromFen, sideToMove } from '../rules';
+import { applyMove, createGame, createGameFromFen, sideToMove, toFen } from '../rules';
 import {
   acceptDraw,
   createSession,
   declineDraw,
+  deserializeSession,
   drawOfferForPlayerEdge,
   isSessionFinished,
   newGameNeedsConfirmation,
   offerDraw,
   resign,
   resultForPlayerEdge,
+  serializeSession,
   startNewGame,
   tableResult,
   withGame,
@@ -222,5 +224,69 @@ describe('starting a new game', () => {
       false,
     );
     expect(newGameNeedsConfirmation(resign(createSession(), 'white'))).toBe(false);
+  });
+});
+
+describe('carrying a session across the app closing', () => {
+  it('brings a game in progress back exactly as it stood', () => {
+    const played = applyMove(createGame(), { from: 'e2', to: 'e4' });
+    const session = createSession(played);
+
+    const resumed = deserializeSession(serializeSession(session));
+
+    expect(toFen(resumed.game)).toBe(toFen(played));
+    expect(tableResult(resumed).kind).toBe('in-progress');
+  });
+
+  it('brings a resigned game back still resigned', () => {
+    // The rules module never knew this game ended, so the result lives only on
+    // the session. Storing the game alone would quietly put two players back
+    // into a game they had already finished.
+    const session = resign(
+      createSession(applyMove(createGame(), { from: 'e2', to: 'e4' })),
+      'white',
+    );
+
+    const resumed = deserializeSession(serializeSession(session));
+
+    expect(tableResult(resumed)).toEqual(tableResult(session));
+    expect(tableResult(resumed)).toEqual({
+      kind: 'decisive',
+      winner: 'black',
+      text: 'Black wins by resignation',
+    });
+  });
+
+  it('brings a game drawn by agreement back still drawn', () => {
+    const session = acceptDraw(offerDraw(createSession(), 'white'));
+
+    const resumed = deserializeSession(serializeSession(session));
+
+    expect(tableResult(resumed)).toEqual({ kind: 'drawn', text: 'Drawn by agreement' });
+  });
+
+  it('forgets a draw offer that was still standing', () => {
+    // An offer is something one player said across the table. It is not worth
+    // preserving across the app closing; it is simply offered again.
+    const session = offerDraw(createSession(), 'white');
+
+    expect(deserializeSession(serializeSession(session)).drawOffer).toEqual({
+      kind: 'none',
+    });
+  });
+
+  it('yields a fresh session from anything it cannot read', () => {
+    for (const unreadable of ['', 'not json', '{"outcome":', '{}', 'rnbq/8 w - - 0 1']) {
+      const session = deserializeSession(unreadable);
+      expect(tableResult(session).kind).toBe('in-progress');
+      expect(toFen(session.game)).toBe(toFen(createGame()));
+    }
+  });
+
+  it('yields a playable game when the stored ending is nonsense', () => {
+    const stored = serializeSession(createSession());
+    const corrupted = stored.replace(/^\{/, '{"outcome":{"kind":"nonsense"},');
+
+    expect(tableResult(deserializeSession(corrupted)).kind).toBe('in-progress');
   });
 });
