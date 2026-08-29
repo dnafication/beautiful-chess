@@ -7,6 +7,11 @@ export interface GameState {
   readonly enPassantTarget: Square | undefined;
   readonly halfmoveClock: number;
   readonly fullmoveNumber: number;
+  // Repetition signatures of every position that has occurred in this game,
+  // the current one last. Threefold repetition needs the history the six FEN
+  // fields cannot carry; it is optional because a position parsed from FEN
+  // begins its history fresh, with itself as the sole entry.
+  readonly positionHistory?: readonly string[];
 }
 
 export function toGameState(game: Game): GameState {

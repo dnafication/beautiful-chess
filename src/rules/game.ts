@@ -19,6 +19,7 @@ import {
 } from './moves';
 import { IllegalMoveError } from './types';
 import { materialAdvantageOf, capturedPiecesOf } from './material';
+import { classify, gameStatus, historyOf, repetitionSignature } from './status';
 
 const STARTING_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
@@ -28,7 +29,7 @@ export function createGame(): Game {
 
 export function createGameFromFen(fen: string): Game {
   const state = parseFen(fen);
-  return fromGameState(state);
+  return fromGameState({ ...state, positionHistory: historyOf(state) });
 }
 
 export function toFen(game: Game): string {
@@ -75,15 +76,28 @@ export function legalDestinations(game: Game, from: Square): readonly Square[] {
 
 export function applyMove(game: Game, move: Move): Game {
   const state = toGameState(game);
+  // Generated once and handed to everything below: the status check, the
+  // legality check and the next position's signature all want the same list,
+  // and generating it is the expensive part of making a move.
+  const moves = legalIndexedMoves(state);
+  // A finished game accepts no further move — a drawn or decided position is
+  // over even when pieces on the board could still, in isolation, move.
+  if (classify(state, moves).kind !== 'in-progress') {
+    throw new IllegalMoveError('Game is finished');
+  }
   const indexedMove = toIndexedMove(move);
-  const legalMove = legalIndexedMoves(state).find(
+  const legalMove = moves.find(
     (candidate) =>
       candidate.from === indexedMove.from &&
       candidate.to === indexedMove.to &&
       candidate.promotion === indexedMove.promotion,
   );
   if (!legalMove) throw new IllegalMoveError('Move is not legal');
-  return fromGameState(applyIndexedMove(state, legalMove));
+  const nextState = applyIndexedMove(state, legalMove);
+  return fromGameState({
+    ...nextState,
+    positionHistory: [...historyOf(state, moves), repetitionSignature(nextState)],
+  });
 }
 
 export function isCheck(game: Game): boolean {

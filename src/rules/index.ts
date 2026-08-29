@@ -1,8 +1,10 @@
 export type {
   CapturedPieces,
   CastlingRights,
+  DrawReason,
   File,
   Game,
+  GameStatus,
   Move,
   Piece,
   PieceColor,
@@ -12,6 +14,7 @@ export type {
   Square,
 } from './types';
 export { IllegalMoveError, InvalidPositionError } from './types';
+export { gameStatus } from './status';
 export {
   applyMove,
   capturedPieces,
