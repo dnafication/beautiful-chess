@@ -220,6 +220,70 @@ const game = createGameFromFen(
 capturedPieces(game); // { byWhite: [{ color: 'black', type: 'pawn' }], byBlack: [] }
 ```
 
+### Undo and serialisation
+
+Applying a move returns a _new_ game rather than mutating the old one, so a
+game's history is just the list of prior values. That is what makes unlimited
+undo correct: `undo` steps back to the previous value rather than trying to
+invert the last move, so it can never forget to restore castling rights, the
+en-passant square or a clock the way an unmake-move routine quietly would.
+
+| Function                  | Returns | Notes                                                              |
+| ------------------------- | ------- | ------------------------------------------------------------------ |
+| `canUndo(game)`           | boolean | Whether a move has been played that can be stepped back.           |
+| `undo(game)`              | `Game`  | The game as it stood before the last move; unchanged if none.      |
+| `serializeGame(game)`     | string  | The whole game — starting position and every move — as a string.   |
+| `deserializeGame(string)` | `Game`  | Reads one back. Untrusted input yields a fresh game, never throws. |
+
+`undo` restores everything observable — position, side to move, castling rights,
+en-passant availability, both clocks, Material Advantage, captured pieces and
+status — so a game rewound one move is indistinguishable from the game as it
+stood one move ago. It works out of a finished game too, stepping a checkmate or
+a declared draw back into play. It only ever rewinds to the position the game
+began from, never before it, so a game loaded mid-play from FEN cannot be stepped
+back past its own start:
+
+```ts
+let game = createGame();
+game = applyMove(game, { from: 'e2', to: 'e4' });
+
+canUndo(game); // true
+sideToMove(undo(game)); // 'white' - back to the start
+canUndo(undo(game)); // false - nothing left to undo
+```
+
+Undo at the start of a game is not an error: `canUndo` reports `false` and `undo`
+returns the game unchanged, so a caller can wire an always-present control
+without guarding every call.
+
+Serialisation carries the **full history, not just the current position**, so
+undo keeps working after the app is closed and reopened. A single FEN cannot do
+this — its six fields hold one position and no history, and threefold repetition
+is counted over a game's whole history. `serializeGame` therefore records the
+starting position and the moves played, and `deserializeGame` replays them, which
+rebuilds both the undo history and the repetition count:
+
+```ts
+let game = createGame();
+game = applyMove(game, { from: 'b1', to: 'c3' });
+game = applyMove(game, { from: 'g8', to: 'f6' });
+game = applyMove(game, { from: 'c3', to: 'b1' });
+game = applyMove(game, { from: 'f6', to: 'g8' }); // the start position, a second time
+
+const resumed = deserializeGame(serializeGame(game));
+toFen(resumed) === toFen(game); // true - same position...
+canUndo(resumed); // true - ...and the same history behind it
+```
+
+`deserializeGame` treats its input as untrusted. Malformed, truncated or empty
+text — or a stored move that no longer replays legally — yields a fresh game
+rather than a crash or a half-restored board:
+
+```ts
+toFen(deserializeGame('')); // 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
+toFen(deserializeGame('{ not json')); // the same standard starting position
+```
+
 ### Types
 
 ```ts
@@ -333,18 +397,12 @@ Not rejected: deeper chess illegality, such as pawns on the first rank or a side
 delivering check to a king that cannot be captured. Validation here is structural. The two
 kings are the one semantic check, because everything downstream assumes they exist.
 
-## Not built yet
+## The whole interface is live
 
-Position setup, reading, move generation, en passant, castling, promotion, Material Advantage
-and game-end classification all exist today. Still to come, behind this same interface:
-
-| Feature                             | Ticket |
-| ----------------------------------- | ------ |
-| Undo and full-history serialisation | #10    |
-
-Applying a move will return a _new_ game rather than mutating, which is what makes unlimited
-undo correct: history is a list of prior values, so undo cannot forget to restore castling
-rights or the en-passant square.
+Position setup, reading, move generation, en passant, castling, promotion,
+Material Advantage, game-end classification, undo and full-history serialisation
+all exist today. Nothing is staged behind this interface any longer; undo and
+serialisation, the last of it, landed in #10.
 
 ## Working on this module
 

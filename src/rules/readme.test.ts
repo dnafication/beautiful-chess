@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyMove,
+  canUndo,
   capturedPieces,
   createGame,
   createGameFromFen,
+  deserializeGame,
   gameStatus,
   IllegalMoveError,
   InvalidPositionError,
@@ -11,8 +13,10 @@ import {
   legalMoves,
   materialAdvantage,
   pieceAt,
+  serializeGame,
   sideToMove,
   toFen,
+  undo,
 } from './index';
 
 describe('README examples stay true', () => {
@@ -118,5 +122,33 @@ describe('README examples stay true', () => {
       byWhite: [{ color: 'black', type: 'pawn' }],
       byBlack: [],
     });
+  });
+
+  it('undo block is accurate', () => {
+    let game = createGame();
+    game = applyMove(game, { from: 'e2', to: 'e4' });
+
+    expect(canUndo(game)).toBe(true);
+    expect(sideToMove(undo(game))).toBe('white');
+    expect(canUndo(undo(game))).toBe(false);
+  });
+
+  it('serialisation block is accurate', () => {
+    let game = createGame();
+    game = applyMove(game, { from: 'b1', to: 'c3' });
+    game = applyMove(game, { from: 'g8', to: 'f6' });
+    game = applyMove(game, { from: 'c3', to: 'b1' });
+    game = applyMove(game, { from: 'f6', to: 'g8' });
+
+    const resumed = deserializeGame(serializeGame(game));
+    expect(toFen(resumed)).toBe(toFen(game));
+    expect(canUndo(resumed)).toBe(true);
+
+    expect(toFen(deserializeGame(''))).toBe(
+      'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+    );
+    expect(toFen(deserializeGame('{ not json'))).toBe(
+      'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+    );
   });
 });

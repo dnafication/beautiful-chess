@@ -17,10 +17,12 @@ export { IllegalMoveError, InvalidPositionError } from './types';
 export { gameStatus } from './status';
 export {
   applyMove,
+  canUndo,
   capturedPieces,
   castlingRights,
   createGame,
   createGameFromFen,
+  deserializeGame,
   enPassantTarget,
   fullmoveNumber,
   halfmoveClock,
@@ -29,6 +31,8 @@ export {
   legalMoves,
   materialAdvantage,
   pieceAt,
+  serializeGame,
   sideToMove,
   toFen,
+  undo,
 } from './game';
