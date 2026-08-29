@@ -1,6 +1,14 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { createGame, createGameFromFen } from './index';
 import { perft, perftDivide } from './perft';
+
+// Every perft here is one solid synchronous block, and this file holds enough of
+// them to run for over a minute on a slow machine. Vitest's worker talks to the
+// runner over an RPC that times out after 60 seconds, so a reply arriving during
+// an unbroken minute of perft fails the whole run with `Timeout calling
+// "onTaskUpdate"` even though every test passed. Handing the event loop back
+// between tests lets those replies land, and costs a tick.
+beforeEach(() => new Promise((resolve) => setTimeout(resolve, 0)));
 
 describe('perft from the initial position', () => {
   it.each([
