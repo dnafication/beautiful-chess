@@ -66,6 +66,34 @@ pieceAt(endgame, 'a5'); // { color: 'white', type: 'king' }
 | `applyMove(game, move)`         | `Game`              | Returns a new game; throws `IllegalMoveError` if not legal. |
 | `isCheck(game)`                 | boolean             | Whether the side to move is in check.                       |
 
+#### Castling is one move, not two
+
+A `Move` is a single `from`/`to` pair, and castling is expressed as the **king** moving two
+squares toward its rook. There is no separate rook move to make and none appears in
+`legalMoves` — the rook is relocated for you:
+
+```ts
+const game = createGameFromFen('r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1');
+
+legalDestinations(game, 'e1'); // includes 'g1' and 'c1'
+legalDestinations(game, 'e1'); // does NOT include 'h1' - you do not move king onto rook
+
+const after = applyMove(game, { from: 'e1', to: 'g1' });
+pieceAt(after, 'g1'); // { color: 'white', type: 'king' }
+pieceAt(after, 'f1'); // { color: 'white', type: 'rook' }
+pieceAt(after, 'h1'); // undefined
+```
+
+Two consequences for anything drawing a board: a castle animates **two** pieces from **one**
+`Move`, and a king dragged onto its own rook is not a castle — the destination is `g1`/`c1`, the
+king's square, never `h1`/`a1`.
+
+`castlingRights` reports rights, not possibilities. A right is lost permanently the moment its
+king or rook moves and is **not** restored by the rook returning home, so a position can have
+every piece on its home square with no castling available. That distinction is why the rights
+are tracked rather than inferred from the board, and #8 needs it again: two identical-looking
+positions with different rights are different positions for repetition.
+
 ### Types
 
 ```ts
@@ -165,14 +193,17 @@ kings are the one semantic check, because everything downstream assumes they exi
 
 ## Not built yet
 
-Only position setup and reading exist today. Still to come, each behind this same interface:
+Position setup, reading, move generation, en passant and castling exist today. Still to come,
+each behind this same interface:
 
 | Feature                                           | Ticket |
 | ------------------------------------------------- | ------ |
-| En passant                                        | #5     |
-| Castling                                          | #6     |
 | Promotion                                         | #7     |
 | Game-end classification, Material Advantage, undo | #8–#12 |
+
+Until promotion lands, a pawn reaching the last rank has **no legal move at all** — the
+generator omits the move rather than promoting to a queen by default. Kiwipete perft is pinned
+short by exactly that shortfall; see `perft.test.ts`.
 
 Applying a move will return a _new_ game rather than mutating, which is what makes unlimited
 undo correct: history is a list of prior values, so undo cannot forget to restore castling

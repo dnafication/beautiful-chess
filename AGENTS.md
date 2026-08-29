@@ -20,7 +20,7 @@ blocking edges. Work one whose blockers are all closed.
 5. **Write Conventional Commits.**
 
 `src/rules/README.md` documents the rules module — its public interface, how to import it, and
-three behaviours that surprise people. Read it before touching anything under `src/rules`. Its
+the behaviours that surprise people. Read it before touching anything under `src/rules`. Its
 examples are executed by `src/rules/readme.test.ts`, so if you change the interface, that file
 fails and the README must be updated with it.
 

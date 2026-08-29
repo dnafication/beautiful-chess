@@ -31,6 +31,47 @@ describe('perft from the initial position', () => {
   });
 });
 
+// "Kiwipete" is the standard castling position: both sides still hold all four
+// rights, both corridors are clear, and the pieces in between generate exactly
+// the attacked squares that castling has to notice. It stresses castling, en
+// passant and promotion at once, so a wrong count here is unambiguous.
+describe('perft from Kiwipete', () => {
+  const kiwipete = createGameFromFen(
+    'r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1',
+  );
+
+  it.each([
+    [1, 48],
+    [2, 2039],
+    [3, 97_862],
+  ])('matches depth %i', (depth, nodes) => {
+    expect(perft(kiwipete, depth)).toBe(nodes);
+  });
+
+  // Depth 4 is the first depth at which Kiwipete promotes, and promotion is #7,
+  // so the recorded count of 4,085,603 is not reachable yet. The shortfall is
+  // exactly the promotions — 15,172 of them, four pieces for each of 3,793
+  // promoting moves — and nothing else: adding promotion to the generator and
+  // leaving castling untouched produces 4,085,603 on the nose.
+  //
+  // This is pinned rather than skipped so that it fails the moment #7 lands,
+  // at which point the subtraction comes out and the real count goes in.
+  const PROMOTIONS_AT_DEPTH_4 = 15_172;
+
+  it('matches depth 4, less the promotions that #7 will add', () => {
+    expect(perft(kiwipete, 4)).toBe(4_085_603 - PROMOTIONS_AT_DEPTH_4);
+  }, 120_000);
+
+  // Castling is a single king move in this interface, so the two castles show up
+  // in the divide as e1g1 and e1c1 rather than as any notation of their own.
+  it('counts both castles among White first moves', () => {
+    const divide = perftDivide(kiwipete, 1);
+
+    expect(divide.get('e1g1')).toBe(1);
+    expect(divide.get('e1c1')).toBe(1);
+  });
+});
+
 describe('perft from Position 6', () => {
   const pos6 = createGameFromFen(
     'r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10',
