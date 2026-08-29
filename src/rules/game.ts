@@ -19,7 +19,7 @@ import {
 } from './moves';
 import { IllegalMoveError } from './types';
 import { materialAdvantageOf, capturedPiecesOf } from './material';
-import { gameStatus, repetitionSignature } from './status';
+import { gameStatus, historyOf, repetitionSignature } from './status';
 
 const STARTING_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
@@ -29,7 +29,7 @@ export function createGame(): Game {
 
 export function createGameFromFen(fen: string): Game {
   const state = parseFen(fen);
-  return fromGameState({ ...state, positionHistory: [repetitionSignature(state)] });
+  return fromGameState({ ...state, positionHistory: historyOf(state) });
 }
 
 export function toFen(game: Game): string {
@@ -90,10 +90,9 @@ export function applyMove(game: Game, move: Move): Game {
   );
   if (!legalMove) throw new IllegalMoveError('Move is not legal');
   const nextState = applyIndexedMove(state, legalMove);
-  const history = state.positionHistory ?? [repetitionSignature(state)];
   return fromGameState({
     ...nextState,
-    positionHistory: [...history, repetitionSignature(nextState)],
+    positionHistory: [...historyOf(state), repetitionSignature(nextState)],
   });
 }
 

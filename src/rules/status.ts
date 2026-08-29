@@ -38,7 +38,10 @@ export function repetitionSignature(state: GameState): string {
   return `${placement} ${side} ${castling} ${availableEnPassant(state)}`;
 }
 
-function historyOf(state: GameState): readonly string[] {
+// A state parsed from FEN carries no history, because the six FEN fields cannot
+// hold one. Such a game starts counting afresh, with itself as the sole entry.
+// This is the single place that rule is stated.
+export function historyOf(state: GameState): readonly string[] {
   return state.positionHistory ?? [repetitionSignature(state)];
 }
 
@@ -49,9 +52,10 @@ function isThreefoldRepetition(state: GameState): boolean {
 }
 
 // The only material that can never force checkmate, so a draw is declared: a
-// lone king, king and a single minor piece, or king and bishop against king and
-// bishop when both bishops stand on the same colour square. A pawn, rook or
-// queen — or any richer combination, two knights included — leaves mate
+// lone king, king and a single minor piece, or bishops that all stand on one
+// colour of square — which covers king and bishop against king and bishop on
+// the same colour, and a pair of same-coloured bishops on one side. A pawn,
+// rook or queen — or any richer combination, two knights included — leaves mate
 // possible and is not a draw here.
 function isInsufficientMaterial(board: Board): boolean {
   const bishops: number[] = [];
@@ -71,7 +75,7 @@ function isInsufficientMaterial(board: Board): boolean {
   const minors = knights + bishops.length;
   if (minors <= 1) return true; // K vs K, KN vs K, KB vs K
   if (knights === 0 && bishops.length === 2) {
-    return bishops[0] === bishops[1]; // KB vs KB, bishops on one colour
+    return bishops[0] === bishops[1]; // two bishops, all on one colour of square
   }
   return false;
 }

@@ -105,10 +105,11 @@ Three surprises worth stating plainly:
 - **A finished game accepts no move.** `applyMove` on a drawn or decided position
   throws `IllegalMoveError`, even when a piece could otherwise still move.
 
-Insufficient material is a draw only for king versus king, king and a single
-minor piece (knight or bishop) versus king, and king and bishop versus king and
-bishop with both bishops on the same colour square. Anything richer — a pawn, a
-rook, a queen, or even two knights — leaves mate possible and is not drawn.
+Insufficient material is a draw for king versus king, king and a single minor piece (knight or
+bishop) versus king, and any two bishops standing on one colour of square — whether that is one
+bishop each or both on the same side, since bishops on one colour can never cover the squares a
+mate needs. Anything richer — a pawn, a rook, a queen, or even two knights — leaves mate
+possible and is not drawn.
 
 A pawn moving to the far rank must say which piece it becomes. The legal choices are queen,
 rook, bishop and knight; there is no default queen promotion. `legalMoves` reports those as

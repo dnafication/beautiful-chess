@@ -83,6 +83,17 @@ describe('insufficient material', () => {
     expect(gameStatus(game)).toEqual({ kind: 'in-progress' });
   });
 
+  // Two bishops on one colour of square cannot mate whichever side owns them,
+  // so the rule is about the squares the bishops stand on, not about who holds
+  // them. Both of White's bishops here are dark-squared.
+  it('reports a draw for two same-coloured bishops on one side', () => {
+    const game = createGameFromFen('8/8/4k3/8/8/B3K3/8/2B5 w - - 0 1');
+    expect(gameStatus(game)).toEqual({
+      kind: 'draw',
+      reason: 'insufficient-material',
+    });
+  });
+
   it('does not draw king and two knights versus king', () => {
     const game = createGameFromFen('8/8/4k3/8/8/4K3/8/5NN1 w - - 0 1');
     expect(gameStatus(game)).toEqual({ kind: 'in-progress' });
