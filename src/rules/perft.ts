@@ -1,7 +1,12 @@
-import { applyMove, legalMoves, type Game } from './index';
+import { applyMove, legalMoves, type Game, type Move } from './index';
 
-function moveKey(move: { readonly from: string; readonly to: string }): string {
-  return `${move.from}${move.to}`;
+function promotionKey(move: Move): string {
+  if (move.promotion === undefined) return '';
+  return move.promotion === 'knight' ? 'n' : move.promotion[0];
+}
+
+function moveKey(move: Move): string {
+  return `${move.from}${move.to}${promotionKey(move)}`;
 }
 
 export function perftDivide(game: Game, depth: number): ReadonlyMap<string, number> {

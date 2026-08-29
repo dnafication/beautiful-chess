@@ -55,16 +55,23 @@ export function legalMoves(game: Game): readonly Move[] {
 }
 
 export function legalDestinations(game: Game, from: Square): readonly Square[] {
-  return legalMoves(game)
-    .filter((move) => move.from === from)
-    .map((move) => move.to);
+  return [
+    ...new Set(
+      legalMoves(game)
+        .filter((move) => move.from === from)
+        .map((move) => move.to),
+    ),
+  ];
 }
 
 export function applyMove(game: Game, move: Move): Game {
   const state = toGameState(game);
   const indexedMove = toIndexedMove(move);
   const legalMove = legalIndexedMoves(state).find(
-    (candidate) => candidate.from === indexedMove.from && candidate.to === indexedMove.to,
+    (candidate) =>
+      candidate.from === indexedMove.from &&
+      candidate.to === indexedMove.to &&
+      candidate.promotion === indexedMove.promotion,
   );
   if (!legalMove) throw new IllegalMoveError('Move is not legal');
   return fromGameState(applyIndexedMove(state, legalMove));

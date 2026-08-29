@@ -1,5 +1,6 @@
 export type PieceColor = 'white' | 'black';
 export type PieceType = 'pawn' | 'knight' | 'bishop' | 'rook' | 'queen' | 'king';
+export type PromotionPieceType = 'knight' | 'bishop' | 'rook' | 'queen';
 export interface Piece {
   readonly color: PieceColor;
   readonly type: PieceType;
@@ -8,6 +9,7 @@ export interface Piece {
 export interface Move {
   readonly from: Square;
   readonly to: Square;
+  readonly promotion?: PromotionPieceType;
 }
 
 export type File = 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h';

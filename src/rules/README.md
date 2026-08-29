@@ -66,6 +66,39 @@ pieceAt(endgame, 'a5'); // { color: 'white', type: 'king' }
 | `applyMove(game, move)`         | `Game`              | Returns a new game; throws `IllegalMoveError` if not legal. |
 | `isCheck(game)`                 | boolean             | Whether the side to move is in check.                       |
 
+#### Promotion requires a choice
+
+A pawn moving to the far rank must say which piece it becomes. The legal choices are queen,
+rook, bishop and knight; there is no default queen promotion. `legalMoves` reports those as
+four distinct moves that share the same `from` and `to` and differ only by `promotion`:
+
+```ts
+const game = createGameFromFen('4k3/P7/8/8/8/8/8/4K3 w - - 0 1');
+
+legalMoves(game).filter((move) => move.from === 'a7' && move.to === 'a8');
+// [
+//   { from: 'a7', to: 'a8', promotion: 'queen' },
+//   { from: 'a7', to: 'a8', promotion: 'rook' },
+//   { from: 'a7', to: 'a8', promotion: 'bishop' },
+//   { from: 'a7', to: 'a8', promotion: 'knight' },
+// ]
+
+const after = applyMove(game, { from: 'a7', to: 'a8', promotion: 'knight' });
+pieceAt(after, 'a8'); // { color: 'white', type: 'knight' }
+```
+
+`applyMove` rejects a pawn move to the far rank with no `promotion`, and also rejects a
+`promotion` on a move that is not a pawn promotion.
+
+`legalDestinations` reports destination squares, not move identities, so it de-duplicates
+promotion moves:
+
+```ts
+legalDestinations(game, 'a7'); // ['a8']
+```
+
+Use `legalMoves` when the caller needs to show a promotion picker.
+
 #### Castling is one move, not two
 
 A `Move` is a single `from`/`to` pair, and castling is expressed as the **king** moving two
@@ -118,7 +151,10 @@ interface CastlingRights {
 interface Move {
   readonly from: Square;
   readonly to: Square;
+  readonly promotion?: PromotionPieceType;
 }
+
+type PromotionPieceType = 'knight' | 'bishop' | 'rook' | 'queen';
 ```
 
 `Square` is a template literal type, so a typo is a compile error rather than a runtime
@@ -193,17 +229,12 @@ kings are the one semantic check, because everything downstream assumes they exi
 
 ## Not built yet
 
-Position setup, reading, move generation, en passant and castling exist today. Still to come,
-each behind this same interface:
+Position setup, reading, move generation, en passant, castling and promotion exist today. Still
+to come, each behind this same interface:
 
 | Feature                                           | Ticket |
 | ------------------------------------------------- | ------ |
-| Promotion                                         | #7     |
 | Game-end classification, Material Advantage, undo | #8–#12 |
-
-Until promotion lands, a pawn reaching the last rank has **no legal move at all** — the
-generator omits the move rather than promoting to a queen by default. Kiwipete perft is pinned
-short by exactly that shortfall; see `perft.test.ts`.
 
 Applying a move will return a _new_ game rather than mutating, which is what makes unlimited
 undo correct: history is a list of prior values, so undo cannot forget to restore castling
