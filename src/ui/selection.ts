@@ -19,6 +19,7 @@
 import {
   applyMove,
   enPassantTarget,
+  gameStatus,
   isCheck,
   legalDestinations,
   legalMoves,
@@ -63,6 +64,15 @@ export type TapOutcome =
   | { readonly kind: 'clear' }
   | { readonly kind: 'none' };
 
+// A drawn or decided game accepts no move, and some of them still have legal
+// moves to offer: king and bishop against king is drawn by insufficient
+// material while the bishop can still move. Offering a destination the rules
+// module will then refuse is how a tap becomes a crash, so a finished game
+// offers nothing and every tap merely puts the pieces down.
+function isFinished(game: Game): boolean {
+  return gameStatus(game).kind !== 'in-progress';
+}
+
 function isCaptureMove(game: Game, from: Square, to: Square): boolean {
   if (pieceAt(game, to) !== undefined) {
     return true;
@@ -78,6 +88,9 @@ function isCaptureMove(game: Game, from: Square, to: Square): boolean {
  * not theirs to move.
  */
 export function selectionFor(game: Game, square: Square): Selection | undefined {
+  if (isFinished(game)) {
+    return undefined;
+  }
   const piece = pieceAt(game, square);
   if (piece === undefined || piece.color !== sideToMove(game)) {
     return undefined;
@@ -113,6 +126,9 @@ export function tapSquare(
   selection: Selection | undefined,
   square: Square,
 ): TapOutcome {
+  if (isFinished(game)) {
+    return selection === undefined ? { kind: 'none' } : { kind: 'clear' };
+  }
   if (selection === undefined) {
     const picked = selectionFor(game, square);
     return picked === undefined

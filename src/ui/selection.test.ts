@@ -165,3 +165,25 @@ describe('the pieces relocated by a move', () => {
     ]);
   });
 });
+
+// A finished game is over even when pieces could still, in isolation, move.
+// King and bishop against king is a draw by insufficient material, and the
+// bishop has seven legal moves in it — but `applyMove` refuses every one of
+// them. Offering a destination the rules module will then reject is how a tap
+// turns into a crash, so nothing is offered at all.
+describe('a finished game', () => {
+  const drawn = createGameFromFen('4k3/8/8/8/8/8/8/2B1K3 w - - 0 1');
+
+  it('lets no piece be picked up', () => {
+    expect(selectionFor(drawn, 'c1')).toBeUndefined();
+  });
+
+  it('resolves any tap to nothing', () => {
+    expect(tapSquare(drawn, undefined, 'c1')).toEqual({ kind: 'none' });
+  });
+
+  it('puts down a selection made before the game ended', () => {
+    const selection = { from: 'c1' as const, destinations: [] };
+    expect(tapSquare(drawn, selection, 'b2')).toEqual({ kind: 'clear' });
+  });
+});
