@@ -24,7 +24,12 @@ export interface PlayerEdgePresentation {
   readonly turnText: 'To move' | 'Waiting';
 }
 
-const MIN_PLAYER_EDGE_THICKNESS = 72;
+// The Player Edge carries the turn indicator, the check notice, the player's
+// Tray of captured pieces and their Material Advantage reading, so the band
+// reserves room for all of it. That room is fixed by the viewport and never by
+// the Tray's contents: a full Tray and an empty one size the board identically,
+// so captures never move the board (#15).
+const MIN_PLAYER_EDGE_THICKNESS = 108;
 const MAX_PLAYER_EDGE_THICKNESS = 128;
 const PLAYER_EDGE_VIEWPORT_FRACTION = 0.16;
 const WAITING_PLAYER_EDGE_OPACITY = 0.38;

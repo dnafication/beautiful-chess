@@ -1,8 +1,9 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { applyMove, createGame, isCheck, sideToMove } from '../rules';
-import type { Game, Move, PieceColor, PromotionPieceType, Square } from '../rules';
+import type { Game, Move, Piece, PieceColor, PromotionPieceType, Square } from '../rules';
 import { Board } from './Board';
+import { PieceGlyph } from './pieces/PieceGlyph';
 import {
   calculatePlayerEdgesLayout,
   playerEdgeCheckText,
@@ -14,6 +15,7 @@ import type { PromotionPrompt } from './promotion';
 import { PromotionPicker } from './PromotionPicker';
 import { moveRelocations, selectionFor, tapSquare } from './selection';
 import type { Relocation, Selection } from './selection';
+import { trayGlyphMetrics, trayPresentation } from './tray';
 
 function colorLabel(color: PieceColor): string {
   return color === 'white' ? 'White' : 'Black';
@@ -111,10 +113,26 @@ export function PlayerEdgesTable(): React.ReactElement {
   const renderPlayerEdge = (playerEdge: PlayerEdge) => {
     const presentation = playerEdgePresentation(playerEdge, activeColor);
     const checkText = playerEdgeCheckText(presentation.state, inCheck);
+    const tray = trayPresentation(game, playerEdge);
+    const trayMetrics = trayGlyphMetrics(
+      tray.captured.length,
+      layout.boardSize,
+      Math.round(layout.playerEdgeThickness * 0.22),
+    );
+    const trayDescription =
+      tray.captured.length === 0
+        ? 'Tray empty'
+        : `Tray: ${tray.captured.length} captured`;
+    const materialDescription =
+      tray.materialAdvantageText === undefined
+        ? undefined
+        : `Material Advantage ${tray.materialAdvantageText}`;
     const label = [
       `${colorLabel(presentation.color)} Player Edge`,
       presentation.turnText,
       checkText,
+      trayDescription,
+      materialDescription,
     ]
       .filter((part) => part !== undefined)
       .join(', ');
@@ -153,6 +171,26 @@ export function PlayerEdgesTable(): React.ReactElement {
             {presentation.turnText}
           </Text>
           {checkText !== undefined && <Text style={styles.checkText}>{checkText}</Text>}
+          <View style={styles.trayRow}>
+            {tray.materialAdvantageText !== undefined && (
+              <Text style={styles.materialAdvantageText}>
+                {tray.materialAdvantageText}
+              </Text>
+            )}
+            <View style={styles.trayGlyphs}>
+              {tray.captured.map((piece: Piece, index: number) => (
+                <View
+                  key={index}
+                  style={{
+                    marginLeft:
+                      index === 0 ? 0 : trayMetrics.step - trayMetrics.glyphSize,
+                  }}
+                >
+                  <PieceGlyph piece={piece} size={trayMetrics.glyphSize} />
+                </View>
+              ))}
+            </View>
+          </View>
         </View>
       </View>
     );
@@ -245,5 +283,20 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.8,
     textTransform: 'uppercase',
+  },
+  trayRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  trayGlyphs: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  materialAdvantageText: {
+    color: '#2a2a28',
+    fontSize: 20,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
   },
 });
