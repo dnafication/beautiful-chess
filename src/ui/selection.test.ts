@@ -106,21 +106,18 @@ describe('tapping with a piece selected', () => {
   it('asks for a promotion choice rather than playing a move on the far rank', () => {
     const game = createGameFromFen('4k3/P7/8/8/8/8/8/4K3 w - - 0 1');
     const selection = selectionFor(game, 'a7');
-    expect(tapSquare(game, selection, 'a8')).toEqual({
-      kind: 'promote',
-      from: 'a7',
-      to: 'a8',
-    });
+    const outcome = tapSquare(game, selection, 'a8');
+    expect(outcome.kind).toBe('promote');
+    expect(outcome.kind === 'promote' && outcome.prompt.from).toBe('a7');
+    expect(outcome.kind === 'promote' && outcome.prompt.to).toBe('a8');
   });
 
   it('asks for a promotion choice when promoting by capture onto the far rank', () => {
     const game = createGameFromFen('1n2k3/P7/8/8/8/8/8/4K3 w - - 0 1');
     const selection = selectionFor(game, 'a7');
-    expect(tapSquare(game, selection, 'b8')).toEqual({
-      kind: 'promote',
-      from: 'a7',
-      to: 'b8',
-    });
+    const outcome = tapSquare(game, selection, 'b8');
+    expect(outcome.kind).toBe('promote');
+    expect(outcome.kind === 'promote' && outcome.prompt.to).toBe('b8');
   });
 });
 

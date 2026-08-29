@@ -9,7 +9,7 @@ import {
   playerEdgePresentation,
   type PlayerEdge,
 } from './playerEdges';
-import { promotionChoice, promotionPrompt } from './promotion';
+import { promotionChoice } from './promotion';
 import type { PromotionPrompt } from './promotion';
 import { PromotionPicker } from './PromotionPicker';
 import { moveRelocations, selectionFor, tapSquare } from './selection';
@@ -73,7 +73,7 @@ export function PlayerEdgesTable(): React.ReactElement {
           // Nothing is applied yet: the pawn stays put and the picker decides
           // the piece before the one move is played.
           setSelection(undefined);
-          setPromotion(promotionPrompt(game, outcome.from, outcome.to));
+          setPromotion(outcome.prompt);
           break;
         case 'none':
           break;
@@ -90,7 +90,7 @@ export function PlayerEdgesTable(): React.ReactElement {
         // animation from the origin would read as a backward jump.
         playMove(game, outcome.move, false);
       } else if (outcome.kind === 'promote') {
-        setPromotion(promotionPrompt(game, outcome.from, outcome.to));
+        setPromotion(outcome.prompt);
       }
       setSelection(undefined);
     },

@@ -27,6 +27,7 @@ import {
 } from '../rules';
 import type { File, Game, Move, Piece, Rank, Square } from '../rules';
 import { promotionPrompt } from './promotion';
+import type { PromotionPrompt } from './promotion';
 
 const FILES: readonly File[] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 const RANKS: readonly Rank[] = ['1', '2', '3', '4', '5', '6', '7', '8'];
@@ -62,7 +63,7 @@ export interface Relocation {
 export type TapOutcome =
   | { readonly kind: 'select'; readonly selection: Selection }
   | { readonly kind: 'move'; readonly move: Move }
-  | { readonly kind: 'promote'; readonly from: Square; readonly to: Square }
+  | { readonly kind: 'promote'; readonly prompt: PromotionPrompt }
   | { readonly kind: 'clear' }
   | { readonly kind: 'none' };
 
@@ -131,8 +132,12 @@ export function tapSquare(
     return { kind: 'clear' };
   }
   if (selection.destinations.some((destination) => destination.square === square)) {
-    return promotionPrompt(game, selection.from, square) !== undefined
-      ? { kind: 'promote', from: selection.from, to: square }
+    // The prompt is built here rather than merely detected, so the picker uses
+    // the very prompt this outcome was decided by instead of deriving a second
+    // one that could disagree with it.
+    const prompt = promotionPrompt(game, selection.from, square);
+    return prompt !== undefined
+      ? { kind: 'promote', prompt }
       : { kind: 'move', move: { from: selection.from, to: square } };
   }
   const switched = selectionFor(game, square);

@@ -45,7 +45,7 @@ export function PromotionPicker({
               key={piece.type}
               accessibilityRole="button"
               accessibilityLabel={`Promote to ${piece.type}`}
-              onPress={() => onChoose(piece.type as PromotionPieceType)}
+              onPress={() => onChoose(piece.type)}
               style={({ pressed }) => [
                 styles.option,
                 { width: optionSize, height: optionSize },

@@ -17,7 +17,7 @@
  */
 
 import { legalMoves, sideToMove } from '../rules';
-import type { Game, Move, Piece, PromotionPieceType, Square } from '../rules';
+import type { Game, Move, PieceColor, PromotionPieceType, Square } from '../rules';
 import {
   playerEdgeForColor,
   rotationForPlayerEdge,
@@ -36,6 +36,16 @@ const PROMOTION_ORDER: readonly PromotionPieceType[] = [
 ];
 
 /**
+ * One piece a pawn may become. Narrower than `Piece` in exactly the way that
+ * matters — a pawn can never become a pawn or a king — so choosing an option
+ * yields a legal `Move.promotion` without a cast anywhere.
+ */
+export interface PromotionOption {
+  readonly type: PromotionPieceType;
+  readonly color: PieceColor;
+}
+
+/**
  * A pending promotion: the pawn's move, the pieces it may become drawn in the
  * promoting player's colour, and the rotation that faces that player from their
  * own seat — the same rotation as their Player Edge.
@@ -43,7 +53,7 @@ const PROMOTION_ORDER: readonly PromotionPieceType[] = [
 export interface PromotionPrompt {
   readonly from: Square;
   readonly to: Square;
-  readonly options: readonly Piece[];
+  readonly options: readonly PromotionOption[];
   readonly rotation: PlayerEdgeRotation;
 }
 
@@ -64,7 +74,7 @@ export function promotionPrompt(
     return undefined;
   }
   const color = sideToMove(game);
-  const options = PROMOTION_ORDER.map((type): Piece => ({ type, color }));
+  const options = PROMOTION_ORDER.map((type): PromotionOption => ({ type, color }));
   return {
     from,
     to,
