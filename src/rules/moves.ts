@@ -126,6 +126,19 @@ function addSlides(
   }
 }
 
+// The square an en-passant capture actually takes from is beside the
+// destination, not on it, so the pawn there has to be found before the capture
+// can be offered.
+function isEnemyPawn(
+  state: GameState,
+  index: number | undefined,
+  color: PieceColor,
+): boolean {
+  if (index === undefined) return false;
+  const piece = state.board[index];
+  return piece?.type === 'pawn' && piece.color === other(color);
+}
+
 function pseudoLegalMoves(state: GameState): IndexedMove[] {
   const moves: IndexedMove[] = [];
   for (let from = 0; from < state.board.length; from++) {
@@ -155,12 +168,24 @@ function pseudoLegalMoves(state: GameState): IndexedMove[] {
       }
       for (const fileOffset of [-1, 1]) {
         const to = indexAt(file + fileOffset, rank + direction);
+        if (to === undefined || rank + direction === promotionRank) continue;
         if (
-          to !== undefined &&
-          rank + direction !== promotionRank &&
           state.board[to]?.color === other(piece.color) &&
           state.board[to]?.type !== 'king'
         ) {
+          moves.push({ from, to });
+        } else if (
+          state.enPassantTarget !== undefined &&
+          to === squareToIndex(state.enPassantTarget) &&
+          state.board[to] === undefined &&
+          isEnemyPawn(state, indexAt(file + fileOffset, rank), piece.color)
+        ) {
+          // The en-passant target square is empty by definition, so the ordinary
+          // capture branch above can never see it — the pawn being taken is
+          // beside the destination rather than on it. That pawn is looked for
+          // rather than assumed, because a position parsed from FEN carries its
+          // en-passant field verbatim and may name a square with nothing beside
+          // it to take.
           moves.push({ from, to });
         }
       }
@@ -262,13 +287,17 @@ export function applyIndexedMove(state: GameState, move: IndexedMove): GameState
   board[move.from] = undefined;
   board[move.to] = piece;
   const isPawnMove = piece.type === 'pawn';
-  const { rank: fromRank } = fromIndex(move.from);
-  const { rank: toRank } = fromIndex(move.to);
+  const { file: fromFile, rank: fromRank } = fromIndex(move.from);
+  const { file: toFile, rank: toRank } = fromIndex(move.to);
+
+  // En-passant: pawn changes file onto an empty square — the captured pawn
+  // sits on the same file as `to` and the same rank as `from`.
+  if (isPawnMove && fromFile !== toFile && captured === undefined) {
+    board[toIndex({ file: toFile, rank: fromRank })] = undefined;
+  }
   const enPassantTarget =
     isPawnMove && Math.abs(toRank - fromRank) === 2
-      ? indexToSquare(
-          toIndex({ file: fromIndex(move.from).file, rank: (fromRank + toRank) / 2 }),
-        )
+      ? indexToSquare(toIndex({ file: fromFile, rank: (fromRank + toRank) / 2 }))
       : undefined;
   return {
     board,
