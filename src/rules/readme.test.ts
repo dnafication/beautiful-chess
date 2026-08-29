@@ -5,6 +5,7 @@ import {
   createGameFromFen,
   InvalidPositionError,
   legalDestinations,
+  legalMoves,
   pieceAt,
   sideToMove,
   toFen,
@@ -58,6 +59,23 @@ describe('README examples stay true', () => {
     expect(pieceAt(after, 'g1')).toEqual({ color: 'white', type: 'king' });
     expect(pieceAt(after, 'f1')).toEqual({ color: 'white', type: 'rook' });
     expect(pieceAt(after, 'h1')).toBeUndefined();
+  });
+
+  it('promotion block is accurate', () => {
+    const game = createGameFromFen('4k3/P7/8/8/8/8/8/4K3 w - - 0 1');
+
+    expect(
+      legalMoves(game).filter((move) => move.from === 'a7' && move.to === 'a8'),
+    ).toEqual([
+      { from: 'a7', to: 'a8', promotion: 'queen' },
+      { from: 'a7', to: 'a8', promotion: 'rook' },
+      { from: 'a7', to: 'a8', promotion: 'bishop' },
+      { from: 'a7', to: 'a8', promotion: 'knight' },
+    ]);
+
+    const after = applyMove(game, { from: 'a7', to: 'a8', promotion: 'knight' });
+    expect(pieceAt(after, 'a8')).toEqual({ color: 'white', type: 'knight' });
+    expect(legalDestinations(game, 'a7')).toEqual(['a8']);
   });
 
   it('opacity and Square typing claims hold', () => {

@@ -1,6 +1,14 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { createGame, createGameFromFen } from './index';
 import { perft, perftDivide } from './perft';
+
+// Every perft here is one solid synchronous block, and this file holds enough of
+// them to run for over a minute on a slow machine. Vitest's worker talks to the
+// runner over an RPC that times out after 60 seconds, so a reply arriving during
+// an unbroken minute of perft fails the whole run with `Timeout calling
+// "onTaskUpdate"` even though every test passed. Handing the event loop back
+// between tests lets those replies land, and costs a tick.
+beforeEach(() => new Promise((resolve) => setTimeout(resolve, 0)));
 
 describe('perft from the initial position', () => {
   it.each([
@@ -48,18 +56,10 @@ describe('perft from Kiwipete', () => {
     expect(perft(kiwipete, depth)).toBe(nodes);
   });
 
-  // Depth 4 is the first depth at which Kiwipete promotes, and promotion is #7,
-  // so the recorded count of 4,085,603 is not reachable yet. The shortfall is
-  // exactly the promotions — 15,172 of them, four pieces for each of 3,793
-  // promoting moves — and nothing else: adding promotion to the generator and
-  // leaving castling untouched produces 4,085,603 on the nose.
-  //
-  // This is pinned rather than skipped so that it fails the moment #7 lands,
-  // at which point the subtraction comes out and the real count goes in.
-  const PROMOTIONS_AT_DEPTH_4 = 15_172;
-
-  it('matches depth 4, less the promotions that #7 will add', () => {
-    expect(perft(kiwipete, 4)).toBe(4_085_603 - PROMOTIONS_AT_DEPTH_4);
+  // Depth 4 is the first depth at which Kiwipete promotes, so it pins
+  // promotion alongside castling and en-passant in one standard oracle.
+  it('matches depth 4', () => {
+    expect(perft(kiwipete, 4)).toBe(4_085_603);
   }, 120_000);
 
   // Castling is a single king move in this interface, so the two castles show up
@@ -70,6 +70,31 @@ describe('perft from Kiwipete', () => {
     expect(divide.get('e1g1')).toBe(1);
     expect(divide.get('e1c1')).toBe(1);
   });
+});
+
+describe('perft from Position 3', () => {
+  const pos3 = createGameFromFen('8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1');
+
+  it('matches depth 5', () => {
+    expect(perft(pos3, 5)).toBe(674_624);
+  }, 60_000);
+});
+
+describe('perft from Position 5', () => {
+  const pos5 = createGameFromFen(
+    'rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8',
+  );
+
+  it.each([
+    [3, 62_379],
+    [4, 2_103_487],
+  ])(
+    'matches depth %i',
+    (depth, nodes) => {
+      expect(perft(pos5, depth)).toBe(nodes);
+    },
+    120_000,
+  );
 });
 
 describe('perft from Position 6', () => {

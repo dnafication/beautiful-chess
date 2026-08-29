@@ -6,6 +6,7 @@ export type {
   Piece,
   PieceColor,
   PieceType,
+  PromotionPieceType,
   Rank,
   Square,
 } from './types';

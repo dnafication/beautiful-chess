@@ -7,11 +7,19 @@ import {
   toIndex,
 } from './coordinates';
 import type { GameState } from './state';
-import type { CastlingRights, Move, Piece, PieceColor, PieceType } from './types';
+import type {
+  CastlingRights,
+  Move,
+  Piece,
+  PieceColor,
+  PieceType,
+  PromotionPieceType,
+} from './types';
 
 interface IndexedMove {
   readonly from: number;
   readonly to: number;
+  readonly promotion?: PromotionPieceType;
 }
 
 const KNIGHT_OFFSETS = [
@@ -46,6 +54,12 @@ const ROOK_DIRECTIONS = [
   [1, 0],
   [0, 1],
 ] as const;
+const PROMOTION_PIECES: readonly PromotionPieceType[] = [
+  'queen',
+  'rook',
+  'bishop',
+  'knight',
+];
 // Each castle stated once, and the only place the four castles are described.
 // `mustBeEmpty` is the whole corridor between king and rook — queenside that
 // includes b1/b8, which the rook crosses. `kingPath` is only the king's own
@@ -174,6 +188,21 @@ function addSlides(
   }
 }
 
+function addPawnMove(
+  moves: IndexedMove[],
+  from: number,
+  to: number,
+  promotes: boolean,
+): void {
+  if (!promotes) {
+    moves.push({ from, to });
+    return;
+  }
+  for (const promotion of PROMOTION_PIECES) {
+    moves.push({ from, to, promotion });
+  }
+}
+
 // The square an en-passant capture actually takes from is beside the
 // destination, not on it, so the pawn there has to be found before the capture
 // can be offered.
@@ -228,12 +257,8 @@ function pseudoLegalMoves(state: GameState): IndexedMove[] {
       const startRank = piece.color === 'white' ? 1 : 6;
       const promotionRank = piece.color === 'white' ? 7 : 0;
       const oneStep = indexAt(file, rank + direction);
-      if (
-        oneStep !== undefined &&
-        state.board[oneStep] === undefined &&
-        rank + direction !== promotionRank
-      ) {
-        moves.push({ from, to: oneStep });
+      if (oneStep !== undefined && state.board[oneStep] === undefined) {
+        addPawnMove(moves, from, oneStep, rank + direction === promotionRank);
         const twoStep = indexAt(file, rank + direction * 2);
         if (
           rank === startRank &&
@@ -245,12 +270,12 @@ function pseudoLegalMoves(state: GameState): IndexedMove[] {
       }
       for (const fileOffset of [-1, 1]) {
         const to = indexAt(file + fileOffset, rank + direction);
-        if (to === undefined || rank + direction === promotionRank) continue;
+        if (to === undefined) continue;
         if (
           state.board[to]?.color === other(piece.color) &&
           state.board[to]?.type !== 'king'
         ) {
-          moves.push({ from, to });
+          addPawnMove(moves, from, to, rank + direction === promotionRank);
         } else if (
           state.enPassantTarget !== undefined &&
           to === squareToIndex(state.enPassantTarget) &&
@@ -363,7 +388,8 @@ export function applyIndexedMove(state: GameState, move: IndexedMove): GameState
   const piece = board[move.from] as Piece;
   const captured = board[move.to];
   board[move.from] = undefined;
-  board[move.to] = piece;
+  board[move.to] =
+    move.promotion === undefined ? piece : { color: piece.color, type: move.promotion };
   const isPawnMove = piece.type === 'pawn';
   const { file: fromFile, rank: fromRank } = fromIndex(move.from);
   const { file: toFile, rank: toRank } = fromIndex(move.to);
@@ -407,9 +433,17 @@ export function legalIndexedMoves(state: GameState): IndexedMove[] {
 }
 
 export function toMove(move: IndexedMove): Move {
-  return { from: indexToSquare(move.from), to: indexToSquare(move.to) };
+  return {
+    from: indexToSquare(move.from),
+    to: indexToSquare(move.to),
+    ...(move.promotion === undefined ? {} : { promotion: move.promotion }),
+  };
 }
 
 export function toIndexedMove(move: Move): IndexedMove {
-  return { from: squareToIndex(move.from), to: squareToIndex(move.to) };
+  return {
+    from: squareToIndex(move.from),
+    to: squareToIndex(move.to),
+    ...(move.promotion === undefined ? {} : { promotion: move.promotion }),
+  };
 }
