@@ -1,21 +1,12 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View } from 'react-native';
-import { Board } from './src/ui/Board';
+import { View } from 'react-native';
+import { PlayerEdgesTable } from './src/ui/PlayerEdgesTable';
 
 export default function App() {
   return (
-    <View style={styles.container}>
+    <View style={{ flex: 1 }}>
       <StatusBar style="auto" />
-      <Board />
+      <PlayerEdgesTable />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f6f4ef',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

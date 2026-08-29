@@ -12,7 +12,7 @@
  */
 
 import React from 'react';
-import { useWindowDimensions, View } from 'react-native';
+import { View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { createGame, pieceAt } from '../rules';
 import type { File, Rank, Square } from '../rules';
@@ -83,15 +83,21 @@ function renderShape(shape: ResolvedShape, index: number): React.ReactElement {
 
 const game = createGame();
 
-export function Board(): React.ReactElement {
-  const { width, height } = useWindowDimensions();
-  // Keep the board square and within the shorter device dimension so it
-  // never overflows on either a phone or a tablet.
-  const boardSize = Math.min(width, height);
-  const squareSize = boardSize / 8;
+interface BoardProps {
+  /**
+   * The board's edge length in pixels. Required, and deliberately not derived
+   * here: the Player Edges own the layout, so board size has exactly one
+   * source. Two sources would let the board resize itself as edge contents
+   * change, which is the one thing the layout must never do.
+   */
+  readonly size: number;
+}
+
+export function Board({ size }: BoardProps): React.ReactElement {
+  const squareSize = size / 8;
 
   return (
-    <View style={{ width: boardSize, height: boardSize }}>
+    <View style={{ width: size, height: size }}>
       {RANKS_TOP_TO_BOTTOM.map((rank, rankIndex) =>
         FILES.map((file, fileIndex) => {
           const square: Square = `${file}${rank}`;
