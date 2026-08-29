@@ -19,6 +19,7 @@ import {
 } from './moves';
 import { IllegalMoveError } from './types';
 import { materialAdvantageOf, capturedPiecesOf } from './material';
+import { gameStatus, repetitionSignature } from './status';
 
 const STARTING_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
@@ -28,7 +29,7 @@ export function createGame(): Game {
 
 export function createGameFromFen(fen: string): Game {
   const state = parseFen(fen);
-  return fromGameState(state);
+  return fromGameState({ ...state, positionHistory: [repetitionSignature(state)] });
 }
 
 export function toFen(game: Game): string {
@@ -74,6 +75,11 @@ export function legalDestinations(game: Game, from: Square): readonly Square[] {
 }
 
 export function applyMove(game: Game, move: Move): Game {
+  // A finished game accepts no further move — a drawn or decided position is
+  // over even when pieces on the board could still, in isolation, move.
+  if (gameStatus(game).kind !== 'in-progress') {
+    throw new IllegalMoveError('Game is finished');
+  }
   const state = toGameState(game);
   const indexedMove = toIndexedMove(move);
   const legalMove = legalIndexedMoves(state).find(
@@ -83,7 +89,12 @@ export function applyMove(game: Game, move: Move): Game {
       candidate.promotion === indexedMove.promotion,
   );
   if (!legalMove) throw new IllegalMoveError('Move is not legal');
-  return fromGameState(applyIndexedMove(state, legalMove));
+  const nextState = applyIndexedMove(state, legalMove);
+  const history = state.positionHistory ?? [repetitionSignature(state)];
+  return fromGameState({
+    ...nextState,
+    positionHistory: [...history, repetitionSignature(nextState)],
+  });
 }
 
 export function isCheck(game: Game): boolean {

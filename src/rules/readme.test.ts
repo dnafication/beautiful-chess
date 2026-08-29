@@ -4,6 +4,8 @@ import {
   capturedPieces,
   createGame,
   createGameFromFen,
+  gameStatus,
+  IllegalMoveError,
   InvalidPositionError,
   legalDestinations,
   legalMoves,
@@ -78,6 +80,18 @@ describe('README examples stay true', () => {
     const after = applyMove(game, { from: 'a7', to: 'a8', promotion: 'knight' });
     expect(pieceAt(after, 'a8')).toEqual({ color: 'white', type: 'knight' });
     expect(legalDestinations(game, 'a7')).toEqual(['a8']);
+  });
+
+  it('game status block is accurate', () => {
+    const mated = createGameFromFen(
+      'rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3',
+    );
+    expect(gameStatus(mated)).toEqual({ kind: 'checkmate', winner: 'black' });
+
+    // A finished game accepts no move, even one that is otherwise playable.
+    const drawn = createGameFromFen('8/8/4k3/8/8/4K3/8/6N1 w - - 0 1');
+    expect(gameStatus(drawn).kind).toBe('draw');
+    expect(() => applyMove(drawn, { from: 'g1', to: 'f3' })).toThrow(IllegalMoveError);
   });
 
   it('opacity and Square typing claims hold', () => {

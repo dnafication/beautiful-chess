@@ -59,14 +59,56 @@ pieceAt(endgame, 'a5'); // { color: 'white', type: 'king' }
 
 ### Making moves
 
-| Function                        | Returns             | Notes                                                       |
-| ------------------------------- | ------------------- | ----------------------------------------------------------- |
-| `legalMoves(game)`              | `readonly Move[]`   | Every legal move available to the side to move.             |
-| `legalDestinations(game, from)` | `readonly Square[]` | Legal destination squares for the piece on `from`.          |
-| `applyMove(game, move)`         | `Game`              | Returns a new game; throws `IllegalMoveError` if not legal. |
-| `isCheck(game)`                 | boolean             | Whether the side to move is in check.                       |
+| Function                        | Returns             | Notes                                                                                            |
+| ------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------ |
+| `legalMoves(game)`              | `readonly Move[]`   | Every legal move available to the side to move.                                                  |
+| `legalDestinations(game, from)` | `readonly Square[]` | Legal destination squares for the piece on `from`.                                               |
+| `applyMove(game, move)`         | `Game`              | Returns a new game; throws `IllegalMoveError` if not legal, or if the game has already finished. |
+| `isCheck(game)`                 | boolean             | Whether the side to move is in check.                                                            |
 
-#### Promotion requires a choice
+#### Game end is part of the status
+
+`gameStatus(game)` classifies the position. A game is either `in-progress`, a
+`checkmate` naming the `winner`, or a `draw` carrying the `reason` it drew:
+
+```ts
+type DrawReason =
+  'stalemate' | 'insufficient-material' | 'threefold-repetition' | 'fifty-move-rule';
+
+type GameStatus =
+  | { readonly kind: 'in-progress' }
+  | { readonly kind: 'checkmate'; readonly winner: PieceColor }
+  | { readonly kind: 'draw'; readonly reason: DrawReason };
+```
+
+```ts
+// Fool's mate: 1. f3 e5 2. g4 Qh4#. White is to move and mated.
+const mated = createGameFromFen(
+  'rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3',
+);
+gameStatus(mated); // { kind: 'checkmate', winner: 'black' }
+```
+
+Three surprises worth stating plainly:
+
+- **Draws by repetition and the fifty-move rule are auto-declared.** The Laws of
+  Chess make both _claim-based_: a player entitled to the draw must claim it.
+  Pass-and-Play has no one primed to do that, so this app declares them itself.
+  The half-move clock and full position history are still tracked exactly as the
+  Laws require; only the claiming step is automated away.
+- **Position identity is more than piece placement.** Two positions repeat only
+  when the same side is to move, the same pieces stand on the same squares, and
+  the same castling rights and en-passant possibilities exist. En passant counts
+  only when a capture is actually available, not merely because a FEN target is
+  recorded — see [the en-passant note](#fen-notes). Repetition is counted over a
+  game's history, so a position loaded from FEN starts counting afresh.
+- **A finished game accepts no move.** `applyMove` on a drawn or decided position
+  throws `IllegalMoveError`, even when a piece could otherwise still move.
+
+Insufficient material is a draw only for king versus king, king and a single
+minor piece (knight or bishop) versus king, and king and bishop versus king and
+bishop with both bishops on the same colour square. Anything richer — a pawn, a
+rook, a queen, or even two knights — leaves mate possible and is not drawn.
 
 A pawn moving to the far rank must say which piece it becomes. The legal choices are queen,
 rook, bishop and knight; there is no default queen promotion. `legalMoves` reports those as
@@ -210,6 +252,14 @@ interface CapturedPieces {
   readonly byWhite: readonly Piece[]; // the Black pieces White has captured
   readonly byBlack: readonly Piece[]; // the White pieces Black has captured
 }
+
+type DrawReason =
+  'stalemate' | 'insufficient-material' | 'threefold-repetition' | 'fifty-move-rule';
+
+type GameStatus =
+  | { readonly kind: 'in-progress' }
+  | { readonly kind: 'checkmate'; readonly winner: PieceColor }
+  | { readonly kind: 'draw'; readonly reason: DrawReason };
 ```
 
 `Square` is a template literal type, so a typo is a compile error rather than a runtime
@@ -284,12 +334,12 @@ kings are the one semantic check, because everything downstream assumes they exi
 
 ## Not built yet
 
-Position setup, reading, move generation, en passant, castling, promotion and Material Advantage
-exist today. Still to come, each behind this same interface:
+Position setup, reading, move generation, en passant, castling, promotion, Material Advantage
+and game-end classification all exist today. Still to come, behind this same interface:
 
-| Feature                       | Ticket |
-| ----------------------------- | ------ |
-| Game-end classification, undo | #8–#12 |
+| Feature                             | Ticket |
+| ----------------------------------- | ------ |
+| Undo and full-history serialisation | #10    |
 
 Applying a move will return a _new_ game rather than mutating, which is what makes unlimited
 undo correct: history is a list of prior values, so undo cannot forget to restore castling
@@ -317,4 +367,5 @@ Internal layout, smallest dependency first:
 | `fen.ts`         | Six codecs, one per FEN field, each holding both directions. |
 | `state.ts`       | The internal shape, and the opaque-cast pair.                |
 | `game.ts`        | The public functions.                                        |
+| `status.ts`      | Game-end classification and the repetition signature.        |
 | `index.ts`       | The barrel. The only thing the rest of the app may import.   |
