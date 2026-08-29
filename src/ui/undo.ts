@@ -22,7 +22,8 @@
  */
 
 import { canUndo, undo } from '../rules';
-import type { Game } from '../rules';
+import { returnToPlay } from './session';
+import type { TableSession } from './session';
 import { rotationForPlayerEdge } from './playerEdges';
 import type { PlayerEdge, PlayerEdgeRotation } from './playerEdges';
 
@@ -42,32 +43,50 @@ export interface UndoControlPresentation {
  * rather than merely greying it.
  */
 export function undoControlPresentation(
-  game: Game,
+  session: TableSession,
   playerEdge: PlayerEdge,
 ): UndoControlPresentation {
   return {
-    available: canUndo(game),
+    available: canUndoSession(session),
     label: UNDO_LABEL,
     rotation: rotationForPlayerEdge(playerEdge),
   };
 }
 
-/** The game after an undo, and whether anything actually changed. */
+/** The session after an undo, and whether anything actually changed. */
 export interface UndoResult {
-  readonly game: Game;
+  readonly session: TableSession;
   readonly changed: boolean;
 }
 
 /**
- * Steps the game back one move, or reports that there was nothing to step back.
+ * Whether there is anything to take back: either an ending the players agreed
+ * on, or a move played.
+ */
+function canUndoSession(session: TableSession): boolean {
+  return session.outcome !== undefined || canUndo(session.game);
+}
+
+/**
+ * Takes back the last thing that happened at the table.
+ *
+ * When the players ended the game by agreement — a resignation or an agreed
+ * draw — that agreement *is* the last thing that happened, so undo takes back
+ * the agreement and leaves the position untouched, returning a finished game to
+ * play. The rules module never knew the game had ended, so nothing there needs
+ * stepping back. Otherwise undo steps the game back one move.
+ *
  * `changed` lets the caller drop anything that pointed at the old position — a
  * selected piece or an open promotion prompt — so nothing lingers over a board
- * that no longer exists. Undo at the start of a game is not an error: the game
- * is returned unchanged with `changed` false.
+ * that no longer exists. Undo at the start of a game is not an error: the
+ * session is returned unchanged with `changed` false.
  */
-export function applyUndo(game: Game): UndoResult {
-  if (!canUndo(game)) {
-    return { game, changed: false };
+export function applyUndo(session: TableSession): UndoResult {
+  if (session.outcome !== undefined) {
+    return { session: returnToPlay(session, session.game), changed: true };
   }
-  return { game: undo(game), changed: true };
+  if (!canUndo(session.game)) {
+    return { session, changed: false };
+  }
+  return { session: returnToPlay(session, undo(session.game)), changed: true };
 }
