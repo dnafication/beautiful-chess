@@ -76,17 +76,17 @@ describe('Player Edge layout', () => {
   it('keeps the board size and position dependent only on the viewport', () => {
     expect(calculatePlayerEdgesLayout({ width: 390, height: 844 })).toEqual({
       boardSize: 390,
-      playerEdgeThickness: 72,
+      playerEdgeThickness: 108,
       playerEdgeWidth: 390,
-      tableHeight: 534,
+      tableHeight: 606,
     });
   });
 
   it('reserves fixed Player Edge space before sizing the board on shorter viewports', () => {
     expect(calculatePlayerEdgesLayout({ width: 844, height: 390 })).toEqual({
-      boardSize: 246,
-      playerEdgeThickness: 72,
-      playerEdgeWidth: 246,
+      boardSize: 174,
+      playerEdgeThickness: 108,
+      playerEdgeWidth: 174,
       tableHeight: 390,
     });
   });
@@ -103,9 +103,16 @@ describe('Player Edge layout', () => {
   it('never returns a negative board size', () => {
     expect(calculatePlayerEdgesLayout({ width: 100, height: 100 })).toEqual({
       boardSize: 0,
-      playerEdgeThickness: 72,
+      playerEdgeThickness: 108,
       playerEdgeWidth: 0,
-      tableHeight: 144,
+      tableHeight: 216,
     });
+  });
+
+  it('reserves the same Player Edge room whatever the Tray holds, so captures never move the board', () => {
+    // The layout depends only on the viewport: it takes no game and no Tray, so
+    // a full Tray and an empty one size the board identically.
+    const phone = { width: 390, height: 844 };
+    expect(calculatePlayerEdgesLayout(phone)).toEqual(calculatePlayerEdgesLayout(phone));
   });
 });
