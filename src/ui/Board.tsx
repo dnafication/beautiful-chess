@@ -83,11 +83,15 @@ function renderShape(shape: ResolvedShape, index: number): React.ReactElement {
 
 const game = createGame();
 
-export function Board(): React.ReactElement {
+interface BoardProps {
+  readonly size?: number;
+}
+
+export function Board({ size }: BoardProps = {}): React.ReactElement {
   const { width, height } = useWindowDimensions();
   // Keep the board square and within the shorter device dimension so it
   // never overflows on either a phone or a tablet.
-  const boardSize = Math.min(width, height);
+  const boardSize = size ?? Math.min(width, height);
   const squareSize = boardSize / 8;
 
   return (
