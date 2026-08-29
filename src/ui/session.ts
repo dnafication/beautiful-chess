@@ -18,7 +18,7 @@
  * would also be paid on every perft node.)
  */
 
-import { createGame, gameStatus } from '../rules';
+import { createGame, deserializeGame, gameStatus, serializeGame } from '../rules';
 import type { Game, PieceColor } from '../rules';
 import {
   colorForPlayerEdge,
@@ -234,4 +234,74 @@ export function resultForPlayerEdge(
     return undefined;
   }
   return { text: result.text, rotation: rotationForPlayerEdge(playerEdge) };
+}
+
+/**
+ * The session as text that survives the app closing, and back again.
+ *
+ * The game itself is the rules module's own serialisation, which records the
+ * starting position and every move rather than a lone position, so undo still
+ * reaches the start of the game after a resume. What the rules module cannot
+ * carry is an ending the players agreed on: a resignation or an agreed draw is
+ * never in the move list, so storing the game alone would put two players back
+ * into a game they had already finished. The agreed ending is therefore stored
+ * beside it.
+ *
+ * A pending draw offer is deliberately not stored. An offer is something one
+ * player said across the table, and after the app has closed it is simply said
+ * again.
+ */
+interface StoredSession {
+  readonly game: string;
+  readonly outcome?: AgreedOutcome;
+}
+
+export function serializeSession(session: TableSession): string {
+  const stored: StoredSession = {
+    game: serializeGame(session.game),
+    ...(session.outcome === undefined ? {} : { outcome: session.outcome }),
+  };
+  return JSON.stringify(stored);
+}
+
+/**
+ * Reads a stored session back. Storage is untrusted — a truncated write, a file
+ * from an older version, or anything malformed — so anything unreadable yields a
+ * fresh session rather than a broken screen. An unreadable *ending* is dropped
+ * on its own rather than discarding the game with it: a playable game is a
+ * better answer than none.
+ */
+export function deserializeSession(stored: string): TableSession {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(stored);
+  } catch {
+    return createSession();
+  }
+  if (typeof parsed !== 'object' || parsed === null) {
+    return createSession();
+  }
+  const { game, outcome } = parsed as { game?: unknown; outcome?: unknown };
+  if (typeof game !== 'string') {
+    return createSession();
+  }
+  return {
+    game: deserializeGame(game),
+    outcome: readOutcome(outcome),
+    drawOffer: NO_OFFER,
+  };
+}
+
+function readOutcome(outcome: unknown): AgreedOutcome | undefined {
+  if (typeof outcome !== 'object' || outcome === null) {
+    return undefined;
+  }
+  const { kind, winner } = outcome as { kind?: unknown; winner?: unknown };
+  if (kind === 'draw-agreement') {
+    return { kind };
+  }
+  if (kind === 'resignation' && (winner === 'white' || winner === 'black')) {
+    return { kind, winner };
+  }
+  return undefined;
 }

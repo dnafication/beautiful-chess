@@ -1,7 +1,10 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { applyMove, isCheck, sideToMove } from '../rules';
 import type { Game, Move, Piece, PieceColor, PromotionPieceType, Square } from '../rules';
+import { asyncStorageGameStore } from '../persistence/asyncStorageGameStore';
+import { restoreSession, saveSession } from '../persistence/gameStore';
+import type { GameStorage } from '../persistence/gameStore';
 import { Board } from './Board';
 import { PieceGlyph } from './pieces/PieceGlyph';
 import {
@@ -47,11 +50,22 @@ interface Arrival {
  * side to move from the rules module rather than a private copy. Both input
  * methods drive the same selection model in `./selection`; this component only
  * applies what that model resolves and re-renders.
+ *
+ * The one game is auto-saved and resumed through the injected `GameStorage`
+ * (#18): the stored game is restored once on mount, then re-saved whenever the
+ * game value changes — a played move, an undo or a new game alike — so neither
+ * player ever has a save to think about. Storage is a parameter so this wiring
+ * is exercised device-free through `../persistence/gameStore`.
  */
-export function PlayerEdgesTable(): React.ReactElement {
+export function PlayerEdgesTable({
+  storage = asyncStorageGameStore,
+}: {
+  readonly storage?: GameStorage;
+} = {}): React.ReactElement {
   const viewport = useWindowDimensions();
   const layout = calculatePlayerEdgesLayout(viewport);
   const [session, setSession] = useState<TableSession>(() => createSession());
+  const [restored, setRestored] = useState(false);
   const [selection, setSelection] = useState<Selection | undefined>(undefined);
   const [lastMove, setLastMove] = useState<Move | undefined>(undefined);
   const [arrival, setArrival] = useState<Arrival | undefined>(undefined);
@@ -66,6 +80,31 @@ export function PlayerEdgesTable(): React.ReactElement {
 
   const game = session.game;
   const finished = isSessionFinished(session);
+
+  // Resume the stored session once, before any save can run, so the fresh game
+  // the component starts with never overwrites what was left on the device.
+  useEffect(() => {
+    let active = true;
+    void restoreSession(storage).then((resumed) => {
+      if (active) {
+        setSession(resumed);
+        setRestored(true);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [storage]);
+
+  // Save whenever the session changes rather than hooking each action, so a
+  // played move, an undo, a resignation and starting a new game are all stored
+  // for free.
+  useEffect(() => {
+    if (restored) {
+      void saveSession(storage, session);
+    }
+  }, [session, restored, storage]);
+
   const activeColor = sideToMove(game);
   const inCheck = isCheck(game);
 
