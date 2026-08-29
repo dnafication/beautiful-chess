@@ -21,7 +21,7 @@ import {
 } from './moves';
 import { IllegalMoveError } from './types';
 import { materialAdvantageOf, capturedPiecesOf } from './material';
-import { classify, gameStatus, historyOf, repetitionSignature } from './status';
+import { classify, historyOf, repetitionSignature } from './status';
 
 const STARTING_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 

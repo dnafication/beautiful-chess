@@ -18,11 +18,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { Animated, PanResponder, View } from 'react-native';
-import Svg, { Circle, Path } from 'react-native-svg';
 import { pieceAt } from '../rules';
-import type { File, Game, Move, Piece, Rank, Square } from '../rules';
-import { glyphFor } from './pieces/staunton';
-import type { ResolvedShape } from './pieces/staunton';
+import type { File, Game, Move, Rank, Square } from '../rules';
+import { PieceGlyph } from './pieces/PieceGlyph';
 import { checkedKingSquare, selectionFor } from './selection';
 import type { Destination, Relocation, Selection } from './selection';
 
@@ -67,66 +65,6 @@ function squareAt(x: number, y: number, squareSize: number): Square {
   const file = FILES[clamp(x)];
   const rank = RANKS_TOP_TO_BOTTOM[clamp(y)];
   return `${file}${rank}`;
-}
-
-// ── Shape renderer ─────────────────────────────────────────────────────────
-
-function renderShape(shape: ResolvedShape, index: number): React.ReactElement {
-  switch (shape.kind) {
-    case 'filled-path':
-      return (
-        <Path
-          key={index}
-          d={shape.d}
-          fill={shape.fill}
-          stroke={shape.stroke}
-          strokeWidth={shape.strokeWidth}
-          strokeLinejoin={shape.strokeLinejoin}
-          strokeLinecap={shape.strokeLinecap}
-        />
-      );
-    case 'filled-circle':
-      return (
-        <Circle
-          key={index}
-          cx={shape.cx}
-          cy={shape.cy}
-          r={shape.r}
-          fill={shape.fill}
-          stroke={shape.stroke}
-          strokeWidth={shape.strokeWidth}
-        />
-      );
-    case 'stroke-path':
-      return (
-        <Path
-          key={index}
-          d={shape.d}
-          fill="none"
-          stroke={shape.stroke}
-          strokeWidth={shape.strokeWidth}
-          strokeLinecap={shape.strokeLinecap}
-        />
-      );
-    case 'dot':
-      return (
-        <Circle key={index} cx={shape.cx} cy={shape.cy} r={shape.r} fill={shape.fill} />
-      );
-  }
-}
-
-function PieceGlyph({
-  piece,
-  squareSize,
-}: {
-  readonly piece: Piece;
-  readonly squareSize: number;
-}): React.ReactElement {
-  return (
-    <Svg viewBox="0 0 100 100" width={squareSize} height={squareSize}>
-      {glyphFor(piece).shapes.map((shape, index) => renderShape(shape, index))}
-    </Svg>
-  );
 }
 
 // ── Board component ─────────────────────────────────────────────────────────
@@ -315,7 +253,7 @@ export function Board({
                 />
               )}
               {piece !== undefined && !hiddenSquares.has(square) && (
-                <PieceGlyph piece={piece} squareSize={squareSize} />
+                <PieceGlyph piece={piece} size={squareSize} />
               )}
               {destination !== undefined &&
                 (destination.isCapture ? (
@@ -373,7 +311,7 @@ export function Board({
               transform: [{ translateX }, { translateY }],
             }}
           >
-            <PieceGlyph piece={piece} squareSize={squareSize} />
+            <PieceGlyph piece={piece} size={squareSize} />
           </Animated.View>
         );
       })}
@@ -395,7 +333,7 @@ export function Board({
                 height: squareSize,
               }}
             >
-              <PieceGlyph piece={piece} squareSize={squareSize} />
+              <PieceGlyph piece={piece} size={squareSize} />
             </Animated.View>
           );
         })()}
