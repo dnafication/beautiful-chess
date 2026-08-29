@@ -3,6 +3,7 @@ import {
   calculatePlayerEdgesLayout,
   colorForPlayerEdge,
   nextTurnColor,
+  playerEdgeCheckText,
   playerEdgeForColor,
   playerEdgePresentation,
   rotationForPlayerEdge,
@@ -59,6 +60,15 @@ describe('Player Edge turn presentation', () => {
   it('alternates the active colour without consulting the rules module', () => {
     expect(nextTurnColor('white')).toBe('black');
     expect(nextTurnColor('black')).toBe('white');
+  });
+});
+
+describe('Player Edge check notice', () => {
+  it('shows the check notice only on the active Player Edge when in check', () => {
+    expect(playerEdgeCheckText('active', true)).toBe('In check');
+    expect(playerEdgeCheckText('active', false)).toBeUndefined();
+    expect(playerEdgeCheckText('waiting', true)).toBeUndefined();
+    expect(playerEdgeCheckText('waiting', false)).toBeUndefined();
   });
 });
 

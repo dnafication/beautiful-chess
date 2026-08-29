@@ -45,6 +45,17 @@ export function nextTurnColor(activeColor: PieceColor): PieceColor {
   return activeColor === 'white' ? 'black' : 'white';
 }
 
+/**
+ * The check notice shown on a Player Edge. Only the player to move can be in
+ * check, so the notice appears on the active Player Edge and nowhere else.
+ */
+export function playerEdgeCheckText(
+  state: PlayerEdgeState,
+  inCheck: boolean,
+): 'In check' | undefined {
+  return state === 'active' && inCheck ? 'In check' : undefined;
+}
+
 export function playerEdgePresentation(
   playerEdge: PlayerEdge,
   activeColor: PieceColor,

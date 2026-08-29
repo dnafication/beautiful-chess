@@ -1,32 +1,105 @@
-import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import type { PieceColor } from '../rules';
+import React, { useCallback, useRef, useState } from 'react';
+import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { applyMove, createGame, isCheck, sideToMove } from '../rules';
+import type { Game, Move, PieceColor, Square } from '../rules';
 import { Board } from './Board';
 import {
   calculatePlayerEdgesLayout,
-  nextTurnColor,
+  playerEdgeCheckText,
   playerEdgePresentation,
   type PlayerEdge,
 } from './playerEdges';
+import { moveRelocations, selectionFor, tapSquare } from './selection';
+import type { Relocation, Selection } from './selection';
 
 function colorLabel(color: PieceColor): string {
   return color === 'white' ? 'White' : 'Black';
 }
 
+interface Arrival {
+  readonly relocations: readonly Relocation[];
+  readonly nonce: number;
+}
+
+/**
+ * Owns the one `Game`, so the turn indicator and the check notice read the real
+ * side to move from the rules module rather than a private copy. Both input
+ * methods drive the same selection model in `./selection`; this component only
+ * applies what that model resolves and re-renders.
+ */
 export function PlayerEdgesTable(): React.ReactElement {
   const viewport = useWindowDimensions();
   const layout = calculatePlayerEdgesLayout(viewport);
-  const [activeColor, setActiveColor] = useState<PieceColor>('white');
-  const advanceTurn = () => setActiveColor((color) => nextTurnColor(color));
+  const [game, setGame] = useState<Game>(() => createGame());
+  const [selection, setSelection] = useState<Selection | undefined>(undefined);
+  const [lastMove, setLastMove] = useState<Move | undefined>(undefined);
+  const [arrival, setArrival] = useState<Arrival | undefined>(undefined);
+  const nonce = useRef(0);
+
+  const activeColor = sideToMove(game);
+  const inCheck = isCheck(game);
+
+  const playMove = useCallback((currentGame: Game, move: Move, animate: boolean) => {
+    const relocations = moveRelocations(currentGame, move);
+    setGame(applyMove(currentGame, move));
+    setLastMove(move);
+    setSelection(undefined);
+    if (animate) {
+      nonce.current += 1;
+      setArrival({ relocations, nonce: nonce.current });
+    } else {
+      setArrival(undefined);
+    }
+  }, []);
+
+  const handleTapSquare = useCallback(
+    (square: Square) => {
+      const outcome = tapSquare(game, selection, square);
+      switch (outcome.kind) {
+        case 'select':
+          setSelection(outcome.selection);
+          break;
+        case 'clear':
+          setSelection(undefined);
+          break;
+        case 'move':
+          playMove(game, outcome.move, true);
+          break;
+        case 'none':
+          break;
+      }
+    },
+    [game, selection, playMove],
+  );
+
+  const handleDropMove = useCallback(
+    (from: Square, to: Square) => {
+      const outcome = tapSquare(game, selectionFor(game, from), to);
+      if (outcome.kind === 'move') {
+        // The drag already carried the piece to its square, so a settling
+        // animation from the origin would read as a backward jump.
+        playMove(game, outcome.move, false);
+      }
+      setSelection(undefined);
+    },
+    [game, playMove],
+  );
+
   const renderPlayerEdge = (playerEdge: PlayerEdge) => {
     const presentation = playerEdgePresentation(playerEdge, activeColor);
+    const checkText = playerEdgeCheckText(presentation.state, inCheck);
+    const label = [
+      `${colorLabel(presentation.color)} Player Edge`,
+      presentation.turnText,
+      checkText,
+    ]
+      .filter((part) => part !== undefined)
+      .join(', ');
 
     return (
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`${colorLabel(presentation.color)} Player Edge, ${presentation.turnText}`}
+      <View
+        accessibilityLabel={label}
         key={playerEdge}
-        onPress={advanceTurn}
         style={[
           styles.playerEdge,
           {
@@ -56,8 +129,9 @@ export function PlayerEdgesTable(): React.ReactElement {
           >
             {presentation.turnText}
           </Text>
+          {checkText !== undefined && <Text style={styles.checkText}>{checkText}</Text>}
         </View>
-      </Pressable>
+      </View>
     );
   };
 
@@ -67,7 +141,15 @@ export function PlayerEdgesTable(): React.ReactElement {
         style={[styles.table, { height: layout.tableHeight, width: layout.boardSize }]}
       >
         {renderPlayerEdge('far')}
-        <Board size={layout.boardSize} />
+        <Board
+          size={layout.boardSize}
+          game={game}
+          selection={selection}
+          lastMove={lastMove}
+          arrival={arrival}
+          onTapSquare={handleTapSquare}
+          onDropMove={handleDropMove}
+        />
         {renderPlayerEdge('near')}
       </View>
     </View>
@@ -124,5 +206,12 @@ const styles = StyleSheet.create({
   waitingTurnText: {
     backgroundColor: '#c7bdaa',
     color: '#2a2a28',
+  },
+  checkText: {
+    color: '#be3c32',
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
   },
 });
