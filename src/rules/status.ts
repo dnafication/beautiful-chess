@@ -2,6 +2,7 @@ import type { GameState } from './state';
 import { toGameState } from './state';
 import { fromIndex, squareToIndex } from './coordinates';
 import { serializeFen } from './fen';
+import type { IndexedMove } from './moves';
 import { isInCheck, legalIndexedMoves } from './moves';
 import type { Board, Game, GameStatus, PieceColor } from './types';
 
@@ -15,11 +16,16 @@ function other(color: PieceColor): PieceColor {
 // pawn can answer it; two positions that differ only by an unusable target are
 // the same position for repetition, so the target is dropped unless a legal en
 // passant capture exists.
-function availableEnPassant(state: GameState): string {
+function availableEnPassant(
+  state: GameState,
+  moves: readonly IndexedMove[] | undefined,
+): string {
   const target = state.enPassantTarget;
+  // Nothing to test, and no reason to generate the moves it would take to test
+  // it: most positions have no target at all.
   if (target === undefined) return '-';
   const targetIndex = squareToIndex(target);
-  const canCapture = legalIndexedMoves(state).some(
+  const canCapture = (moves ?? legalIndexedMoves(state)).some(
     (move) =>
       move.to === targetIndex &&
       state.board[move.from]?.type === 'pawn' &&
@@ -33,20 +39,29 @@ function availableEnPassant(state: GameState): string {
 // en-passant possibilities exist. Piece placement alone is not enough. The
 // half-move and full-move clocks are deliberately excluded — they never affect
 // whether a position has recurred.
-export function repetitionSignature(state: GameState): string {
+// Generating the legal moves is the expensive part of a signature, so callers
+// that already hold them — every caller on the move-making path does — pass
+// them in rather than paying for them twice.
+export function repetitionSignature(
+  state: GameState,
+  moves?: readonly IndexedMove[],
+): string {
   const [placement, side, castling] = serializeFen(state).split(' ');
-  return `${placement} ${side} ${castling} ${availableEnPassant(state)}`;
+  return `${placement} ${side} ${castling} ${availableEnPassant(state, moves)}`;
 }
 
 // A state parsed from FEN carries no history, because the six FEN fields cannot
 // hold one. Such a game starts counting afresh, with itself as the sole entry.
 // This is the single place that rule is stated.
-export function historyOf(state: GameState): readonly string[] {
-  return state.positionHistory ?? [repetitionSignature(state)];
+export function historyOf(
+  state: GameState,
+  moves?: readonly IndexedMove[],
+): readonly string[] {
+  return state.positionHistory ?? [repetitionSignature(state, moves)];
 }
 
-function isThreefoldRepetition(state: GameState): boolean {
-  const history = historyOf(state);
+function isThreefoldRepetition(state: GameState, moves: readonly IndexedMove[]): boolean {
+  const history = historyOf(state, moves);
   const current = history[history.length - 1];
   return history.filter((signature) => signature === current).length >= 3;
 }
@@ -83,8 +98,11 @@ function isInsufficientMaterial(board: Board): boolean {
 // The whole verdict for a position. Order matters: a side with no legal move
 // has either been mated or stalemated and the game is over before any draw by
 // material, repetition or the clock is considered.
-function classify(state: GameState): GameStatus {
-  if (legalIndexedMoves(state).length === 0) {
+export function classify(
+  state: GameState,
+  moves: readonly IndexedMove[] = legalIndexedMoves(state),
+): GameStatus {
+  if (moves.length === 0) {
     // Check is tested here, not assumed, so checkmate and stalemate are never
     // confused: same "no legal moves", opposite verdicts.
     if (isInCheck(state, state.sideToMove)) {
@@ -104,7 +122,7 @@ function classify(state: GameState): GameStatus {
   }
   // Auto-declared without a claim, for the same Pass-and-Play reason as the
   // fifty-move rule above.
-  if (isThreefoldRepetition(state)) {
+  if (isThreefoldRepetition(state, moves)) {
     return { kind: 'draw', reason: 'threefold-repetition' };
   }
   return { kind: 'in-progress' };

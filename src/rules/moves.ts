@@ -16,7 +16,7 @@ import type {
   PromotionPieceType,
 } from './types';
 
-interface IndexedMove {
+export interface IndexedMove {
   readonly from: number;
   readonly to: number;
   readonly promotion?: PromotionPieceType;
