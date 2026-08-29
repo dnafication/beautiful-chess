@@ -1,4 +1,12 @@
-import type { CastlingRights, Game, Move, Piece, PieceColor, Square } from './types';
+import type {
+  CapturedPieces,
+  CastlingRights,
+  Game,
+  Move,
+  Piece,
+  PieceColor,
+  Square,
+} from './types';
 import { parseFen, serializeFen } from './fen';
 import { squareToIndex } from './coordinates';
 import { fromGameState, toGameState } from './state';
@@ -10,6 +18,7 @@ import {
   toMove,
 } from './moves';
 import { IllegalMoveError } from './types';
+import { materialAdvantageOf, capturedPiecesOf } from './material';
 
 const STARTING_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
@@ -80,4 +89,12 @@ export function applyMove(game: Game, move: Move): Game {
 export function isCheck(game: Game): boolean {
   const state = toGameState(game);
   return isInCheck(state, state.sideToMove);
+}
+
+export function materialAdvantage(game: Game): number {
+  return materialAdvantageOf(toGameState(game).board);
+}
+
+export function capturedPieces(game: Game): CapturedPieces {
+  return capturedPiecesOf(toGameState(game).board);
 }
