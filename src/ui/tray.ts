@@ -79,3 +79,46 @@ export function trayPresentation(game: Game, playerEdge: PlayerEdge): TrayPresen
     materialAdvantageText: materialAdvantageText(materialReadingForColor(game, color)),
   };
 }
+
+/** How wide one Tray glyph is drawn, and how far apart successive ones sit. */
+export interface TrayGlyphMetrics {
+  readonly glyphSize: number;
+  readonly step: number;
+}
+
+/**
+ * How far the pieces may slide over one another before they stop being
+ * recognisable: at this fraction of a glyph's width each piece still shows its
+ * own silhouette above the one beneath it.
+ */
+const MINIMUM_STEP_FRACTION = 0.4;
+
+/**
+ * How a Tray of `count` pieces fits into `availableWidth`, given the size a
+ * glyph is drawn at when there is room.
+ *
+ * The Tray always occupies exactly one row, whatever it holds. That is what
+ * keeps a long game from crowding the board: the Player Edge reserves a fixed
+ * band from the viewport, so a Tray that wrapped onto a second row would spill
+ * out of it. Pieces therefore slide over one another as they accumulate, and
+ * only once that overlap reaches the legibility floor do the glyphs themselves
+ * shrink. Both are display decisions and neither changes what the Tray holds.
+ */
+export function trayGlyphMetrics(
+  count: number,
+  availableWidth: number,
+  glyphSize: number,
+): TrayGlyphMetrics {
+  if (count <= 1 || count * glyphSize <= availableWidth) {
+    return { glyphSize, step: glyphSize };
+  }
+
+  const gaps = count - 1;
+  const roomyStep = (availableWidth - glyphSize) / gaps;
+  if (roomyStep >= glyphSize * MINIMUM_STEP_FRACTION) {
+    return { glyphSize, step: roomyStep };
+  }
+
+  const shrunk = availableWidth / (1 + gaps * MINIMUM_STEP_FRACTION);
+  return { glyphSize: shrunk, step: shrunk * MINIMUM_STEP_FRACTION };
+}

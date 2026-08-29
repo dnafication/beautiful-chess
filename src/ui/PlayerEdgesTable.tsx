@@ -15,7 +15,7 @@ import type { PromotionPrompt } from './promotion';
 import { PromotionPicker } from './PromotionPicker';
 import { moveRelocations, selectionFor, tapSquare } from './selection';
 import type { Relocation, Selection } from './selection';
-import { trayPresentation } from './tray';
+import { trayGlyphMetrics, trayPresentation } from './tray';
 
 function colorLabel(color: PieceColor): string {
   return color === 'white' ? 'White' : 'Black';
@@ -114,7 +114,11 @@ export function PlayerEdgesTable(): React.ReactElement {
     const presentation = playerEdgePresentation(playerEdge, activeColor);
     const checkText = playerEdgeCheckText(presentation.state, inCheck);
     const tray = trayPresentation(game, playerEdge);
-    const trayGlyphSize = Math.round(layout.playerEdgeThickness * 0.22);
+    const trayMetrics = trayGlyphMetrics(
+      tray.captured.length,
+      layout.boardSize,
+      Math.round(layout.playerEdgeThickness * 0.22),
+    );
     const trayDescription =
       tray.captured.length === 0
         ? 'Tray empty'
@@ -175,7 +179,15 @@ export function PlayerEdgesTable(): React.ReactElement {
             )}
             <View style={styles.trayGlyphs}>
               {tray.captured.map((piece: Piece, index: number) => (
-                <PieceGlyph key={index} piece={piece} size={trayGlyphSize} />
+                <View
+                  key={index}
+                  style={{
+                    marginLeft:
+                      index === 0 ? 0 : trayMetrics.step - trayMetrics.glyphSize,
+                  }}
+                >
+                  <PieceGlyph piece={piece} size={trayMetrics.glyphSize} />
+                </View>
               ))}
             </View>
           </View>
@@ -279,9 +291,7 @@ const styles = StyleSheet.create({
   },
   trayGlyphs: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    maxWidth: 240,
+    alignItems: 'center',
   },
   materialAdvantageText: {
     color: '#2a2a28',

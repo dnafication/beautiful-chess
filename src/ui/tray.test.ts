@@ -4,6 +4,7 @@ import {
   capturedForColor,
   materialAdvantageText,
   materialReadingForColor,
+  trayGlyphMetrics,
   trayPresentation,
 } from './tray';
 
@@ -115,5 +116,39 @@ describe('Tray presentation for a Player Edge', () => {
 
     expect(trayPresentation(game, 'near').materialAdvantageText).toBeUndefined();
     expect(trayPresentation(game, 'far').materialAdvantageText).toBeUndefined();
+  });
+});
+
+describe('Tray glyph metrics', () => {
+  it('lays pieces out side by side while the whole run fits', () => {
+    const metrics = trayGlyphMetrics(4, 240, 24);
+
+    expect(metrics).toEqual({ glyphSize: 24, step: 24 });
+  });
+
+  it('overlaps the run rather than wrapping it once it no longer fits', () => {
+    // Fifteen captured pieces is the most a player can hold, and at full size
+    // they are far wider than the band. They overlap onto one row instead of
+    // wrapping onto a second, which would grow the Player Edge and move the
+    // board.
+    const metrics = trayGlyphMetrics(15, 240, 24);
+
+    expect(metrics.glyphSize).toBe(24);
+    expect(metrics.step).toBeLessThan(24);
+    expect(metrics.step * 14 + metrics.glyphSize).toBeLessThanOrEqual(240);
+  });
+
+  it('shrinks the pieces rather than overlapping them past recognition', () => {
+    // A narrow band cannot hold fifteen pieces even fully overlapped down to
+    // the legibility floor, so the glyphs themselves get smaller.
+    const metrics = trayGlyphMetrics(15, 100, 24);
+
+    expect(metrics.glyphSize).toBeLessThan(24);
+    expect(metrics.step).toBeGreaterThan(0);
+    expect(metrics.step * 14 + metrics.glyphSize).toBeLessThanOrEqual(100);
+  });
+
+  it('holds an empty Tray to no width at all', () => {
+    expect(trayGlyphMetrics(0, 240, 24)).toEqual({ glyphSize: 24, step: 24 });
   });
 });
