@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyMove,
+  capturedPieces,
   createGame,
   createGameFromFen,
   InvalidPositionError,
   legalDestinations,
   legalMoves,
+  materialAdvantage,
   pieceAt,
   sideToMove,
   toFen,
@@ -84,5 +86,23 @@ describe('README examples stay true', () => {
     game.board;
     // @ts-expect-error - README: "pieceAt(game, 'j9') does not compile"
     pieceAt(game, 'j9');
+  });
+
+  it('Material Advantage block is accurate', () => {
+    expect(materialAdvantage(createGame())).toBe(0);
+
+    const promoted = createGameFromFen(
+      'rnbqkbnr/pppppppp/8/8/Q7/8/1PPPPPPP/RNBQKBNR b KQkq - 0 1',
+    );
+    expect(materialAdvantage(promoted)).toBe(8);
+    expect(capturedPieces(promoted)).toEqual({ byWhite: [], byBlack: [] });
+
+    const game = createGameFromFen(
+      'rnbqkbnr/1ppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+    );
+    expect(capturedPieces(game)).toEqual({
+      byWhite: [{ color: 'black', type: 'pawn' }],
+      byBlack: [],
+    });
   });
 });

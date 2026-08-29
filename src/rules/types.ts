@@ -25,6 +25,11 @@ export interface CastlingRights {
   readonly blackQueenside: boolean;
 }
 
+export interface CapturedPieces {
+  readonly byWhite: readonly Piece[];
+  readonly byBlack: readonly Piece[];
+}
+
 declare const gameBrand: unique symbol;
 export interface Game {
   readonly [gameBrand]: never;

@@ -1,4 +1,5 @@
 export type {
+  CapturedPieces,
   CastlingRights,
   File,
   Game,
@@ -13,6 +14,7 @@ export type {
 export { IllegalMoveError, InvalidPositionError } from './types';
 export {
   applyMove,
+  capturedPieces,
   castlingRights,
   createGame,
   createGameFromFen,
@@ -22,6 +24,7 @@ export {
   isCheck,
   legalDestinations,
   legalMoves,
+  materialAdvantage,
   pieceAt,
   sideToMove,
   toFen,

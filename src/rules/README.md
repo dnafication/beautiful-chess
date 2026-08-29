@@ -127,6 +127,48 @@ every piece on its home square with no castling available. That distinction is w
 are tracked rather than inferred from the board, and #8 needs it again: two identical-looking
 positions with different rights are different positions for repetition.
 
+### Material Advantage
+
+`materialAdvantage` and `capturedPieces` both read the board and nothing else. **Material
+Advantage is derived from the pieces standing on the board, never from captured pieces**, so a
+promotion is reflected the instant it happens. It is a factual count of what is on the board,
+not a judgement of who is winning, and must never be presented as one — see _Material Advantage_
+in [`CONTEXT.md`](../../CONTEXT.md).
+
+| Function                  | Returns          | Notes                                                    |
+| ------------------------- | ---------------- | -------------------------------------------------------- |
+| `materialAdvantage(game)` | number           | Signed: positive favours White, negative Black, 0 level. |
+| `capturedPieces(game)`    | `CapturedPieces` | The pieces each side has captured, grouped by type.      |
+
+Piece values are pawn 1, knight 3, bishop 3, rook 5, queen 9. Kings are excluded: they are never
+captured and never leave the board. A level position is `0`, which the UI renders as absence
+rather than as a zero.
+
+```ts
+materialAdvantage(createGame()); // 0
+
+// A queen made by promotion, with no captures at all: board-derived reads +8
+// (a queen worth 9 replaced a pawn worth 1). A Tray-derived count would read
+// "even", and would be wrong.
+const promoted = createGameFromFen(
+  'rnbqkbnr/pppppppp/8/8/Q7/8/1PPPPPPP/RNBQKBNR b KQkq - 0 1',
+);
+materialAdvantage(promoted); // 8
+capturedPieces(promoted); // { byWhite: [], byBlack: [] } - the pawn was promoted, not captured
+```
+
+`capturedPieces` returns `byWhite` (the Black pieces White has captured) and `byBlack` (the
+White pieces Black has captured), each grouped by type in the fixed order pawn, knight, bishop,
+rook, queen, so the Tray in #15 has nothing to decide. Both are derived by comparing the board
+against the full starting complement, so a promoted pawn is never mistaken for a captured one.
+
+```ts
+const game = createGameFromFen(
+  'rnbqkbnr/1ppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+);
+capturedPieces(game); // { byWhite: [{ color: 'black', type: 'pawn' }], byBlack: [] }
+```
+
 ### Types
 
 ```ts
@@ -155,6 +197,11 @@ interface Move {
 }
 
 type PromotionPieceType = 'knight' | 'bishop' | 'rook' | 'queen';
+
+interface CapturedPieces {
+  readonly byWhite: readonly Piece[]; // the Black pieces White has captured
+  readonly byBlack: readonly Piece[]; // the White pieces Black has captured
+}
 ```
 
 `Square` is a template literal type, so a typo is a compile error rather than a runtime
@@ -229,12 +276,12 @@ kings are the one semantic check, because everything downstream assumes they exi
 
 ## Not built yet
 
-Position setup, reading, move generation, en passant, castling and promotion exist today. Still
-to come, each behind this same interface:
+Position setup, reading, move generation, en passant, castling, promotion and Material Advantage
+exist today. Still to come, each behind this same interface:
 
-| Feature                                           | Ticket |
-| ------------------------------------------------- | ------ |
-| Game-end classification, Material Advantage, undo | #8–#12 |
+| Feature                       | Ticket |
+| ----------------------------- | ------ |
+| Game-end classification, undo | #8–#12 |
 
 Applying a move will return a _new_ game rather than mutating, which is what makes unlimited
 undo correct: history is a list of prior values, so undo cannot forget to restore castling
