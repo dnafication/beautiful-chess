@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState } from 'react';
-import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { applyMove, createGame, isCheck, sideToMove } from '../rules';
 import type { Game, Move, Piece, PieceColor, PromotionPieceType, Square } from '../rules';
 import { Board } from './Board';
@@ -16,6 +16,7 @@ import { PromotionPicker } from './PromotionPicker';
 import { moveRelocations, selectionFor, tapSquare } from './selection';
 import type { Relocation, Selection } from './selection';
 import { trayGlyphMetrics, trayPresentation } from './tray';
+import { applyUndo, undoControlPresentation } from './undo';
 
 function colorLabel(color: PieceColor): string {
   return color === 'white' ? 'White' : 'Black';
@@ -110,9 +111,26 @@ export function PlayerEdgesTable(): React.ReactElement {
     [game, promotion, playMove],
   );
 
+  // Undo steps the whole game back one move (rules module), so it may pull the
+  // board out from under a selected piece or an open promotion prompt. Both are
+  // dropped so nothing lingers over a position that no longer exists, and the
+  // last-move highlight and arrival animation clear with them.
+  const handleUndo = useCallback(() => {
+    const result = applyUndo(game);
+    if (!result.changed) {
+      return;
+    }
+    setGame(result.game);
+    setSelection(undefined);
+    setPromotion(undefined);
+    setLastMove(undefined);
+    setArrival(undefined);
+  }, [game]);
+
   const renderPlayerEdge = (playerEdge: PlayerEdge) => {
     const presentation = playerEdgePresentation(playerEdge, activeColor);
     const checkText = playerEdgeCheckText(presentation.state, inCheck);
+    const undoControl = undoControlPresentation(game, playerEdge);
     const tray = trayPresentation(game, playerEdge);
     const trayMetrics = trayGlyphMetrics(
       tray.captured.length,
@@ -191,6 +209,31 @@ export function PlayerEdgesTable(): React.ReactElement {
               ))}
             </View>
           </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={undoControl.label}
+            accessibilityState={{ disabled: !undoControl.available }}
+            disabled={!undoControl.available}
+            onPress={handleUndo}
+            style={({ pressed }) => [
+              styles.undoControl,
+              undoControl.available
+                ? styles.undoControlAvailable
+                : styles.undoControlUnavailable,
+              pressed && undoControl.available && styles.undoControlPressed,
+            ]}
+          >
+            <Text
+              style={[
+                styles.undoControlText,
+                undoControl.available
+                  ? styles.undoControlTextAvailable
+                  : styles.undoControlTextUnavailable,
+              ]}
+            >
+              {undoControl.label}
+            </Text>
+          </Pressable>
         </View>
       </View>
     );
@@ -298,5 +341,34 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
+  },
+  undoControl: {
+    borderRadius: 999,
+    borderWidth: 2,
+    paddingHorizontal: 16,
+    paddingVertical: 5,
+  },
+  undoControlAvailable: {
+    borderColor: '#2a2a28',
+    backgroundColor: '#e8e0d0',
+  },
+  undoControlUnavailable: {
+    borderColor: '#c7bdaa',
+    backgroundColor: 'transparent',
+  },
+  undoControlPressed: {
+    backgroundColor: '#d8d1c4',
+  },
+  undoControlText: {
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+  undoControlTextAvailable: {
+    color: '#2a2a28',
+  },
+  undoControlTextUnavailable: {
+    color: '#b7ad9a',
   },
 });
