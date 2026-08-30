@@ -78,17 +78,17 @@ describe('Player Edge layout', () => {
   it('keeps the board size and position dependent only on the viewport', () => {
     expect(calculatePlayerEdgesLayout({ width: 390, height: 844 })).toEqual({
       boardSize: 390,
-      playerEdgeThickness: 144,
+      playerEdgeThickness: 156,
       playerEdgeWidth: 390,
-      tableHeight: 678,
+      tableHeight: 702,
     });
   });
 
   it('reserves fixed Player Edge space before sizing the board on shorter viewports', () => {
     expect(calculatePlayerEdgesLayout({ width: 844, height: 390 })).toEqual({
-      boardSize: 102,
-      playerEdgeThickness: 144,
-      playerEdgeWidth: 102,
+      boardSize: 78,
+      playerEdgeThickness: 156,
+      playerEdgeWidth: 78,
       tableHeight: 390,
     });
   });
@@ -96,18 +96,18 @@ describe('Player Edge layout', () => {
   it('keeps the Player Edge the same thickness on a tablet, so the board takes the extra room', () => {
     expect(calculatePlayerEdgesLayout({ width: 1024, height: 1366 })).toEqual({
       boardSize: 1024,
-      playerEdgeThickness: 144,
+      playerEdgeThickness: 156,
       playerEdgeWidth: 1024,
-      tableHeight: 1312,
+      tableHeight: 1336,
     });
   });
 
   it('never returns a negative board size', () => {
     expect(calculatePlayerEdgesLayout({ width: 100, height: 100 })).toEqual({
       boardSize: 0,
-      playerEdgeThickness: 144,
+      playerEdgeThickness: 156,
       playerEdgeWidth: 0,
-      tableHeight: 288,
+      tableHeight: 312,
     });
   });
 

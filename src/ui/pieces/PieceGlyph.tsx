@@ -9,6 +9,7 @@
  */
 
 import React from 'react';
+import { View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import type { Piece } from '../../rules';
 import { glyphFor } from './staunton';
@@ -66,8 +67,17 @@ export function PieceGlyph({
   readonly size: number;
 }): React.ReactElement {
   return (
-    <Svg viewBox="0 0 100 100" width={size} height={size}>
-      {glyphFor(piece).shapes.map((shape, index) => renderShape(shape, index))}
-    </Svg>
+    <View
+      style={{
+        shadowColor: '#2a2a28',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.35,
+        shadowRadius: 1.5,
+      }}
+    >
+      <Svg viewBox="0 0 100 100" width={size} height={size}>
+        {glyphFor(piece).shapes.map((shape, index) => renderShape(shape, index))}
+      </Svg>
+    </View>
   );
 }

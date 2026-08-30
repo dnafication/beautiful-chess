@@ -238,7 +238,7 @@ function resolveShape(shape: Shape, ink: Record<InkRole, string>): ResolvedShape
         d: shape.d,
         fill: ink[shape.fill],
         stroke: ink[shape.stroke],
-        strokeWidth: 3.5,
+        strokeWidth: 2.5,
         strokeLinejoin: 'round',
         strokeLinecap: 'round',
       };
@@ -250,14 +250,14 @@ function resolveShape(shape: Shape, ink: Record<InkRole, string>): ResolvedShape
         r: shape.r,
         fill: ink[shape.fill],
         stroke: ink[shape.stroke],
-        strokeWidth: 3.5,
+        strokeWidth: 2.5,
       };
     case 'stroke-path':
       return {
         kind: 'stroke-path',
         d: shape.d,
         stroke: ink[shape.stroke],
-        strokeWidth: 5,
+        strokeWidth: 3.5,
         strokeLinecap: 'round',
       };
     case 'dot':

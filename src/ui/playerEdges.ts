@@ -45,15 +45,28 @@ export const playerEdgeRowHeights = {
   /** Material Advantage reading and the Tray of captured pieces. */
   tray: 26,
   /** The Undo control, alone on its own row. */
-  undo: 26,
+  undo: 32,
   /** The table's actions: draw, resign and new game (or their responses). */
-  actions: 30,
+  actions: 36,
 } as const;
 
 const PLAYER_EDGE_ROW_GAP = 6;
-const PLAYER_EDGE_BORDER_WIDTH = 3;
-const PLAYER_EDGE_VERTICAL_PADDING = 4;
 const WAITING_PLAYER_EDGE_OPACITY = 0.38;
+
+/**
+ * The Player Edge's border width. A single source of truth: the style that
+ * draws it and the formula that derives the band's thickness both read this,
+ * so a border that grew in one place could never silently overflow in the
+ * other the way two independent numbers could.
+ */
+export const playerEdgeBorderWidth = 1;
+
+/**
+ * The vertical padding inside the Player Edge's border, above its first row
+ * and below its last. Also a single source of truth with the style that
+ * applies it.
+ */
+export const playerEdgeVerticalPadding = 6;
 
 /** The space the Player Edge leaves between its rows. */
 export const playerEdgeRowGap = PLAYER_EDGE_ROW_GAP;
@@ -66,7 +79,7 @@ export function playerEdgeContentHeight(): number {
     playerEdgeRowHeights.undo +
     playerEdgeRowHeights.actions;
   const gaps = PLAYER_EDGE_ROW_GAP * 3;
-  const chrome = (PLAYER_EDGE_BORDER_WIDTH + PLAYER_EDGE_VERTICAL_PADDING) * 2;
+  const chrome = (playerEdgeBorderWidth + playerEdgeVerticalPadding) * 2;
   return rows + gaps + chrome;
 }
 
