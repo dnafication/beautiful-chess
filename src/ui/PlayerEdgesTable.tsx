@@ -36,6 +36,7 @@ import {
 } from './session';
 import type { TableSession } from './session';
 import { trayGlyphMetrics, trayPresentation } from './tray';
+import { fontFamily } from './typography';
 import { applyUndo, undoControlPresentation } from './undo';
 
 function colorLabel(color: PieceColor): string {
@@ -600,8 +601,8 @@ const styles = StyleSheet.create({
   },
   colorText: {
     color: '#2a2a28',
+    fontFamily: fontFamily.extraBold,
     fontSize: 18,
-    fontWeight: '800',
     letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
@@ -610,8 +611,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     paddingHorizontal: 12,
     paddingVertical: 3,
+    fontFamily: fontFamily.semiBold,
     fontSize: 13,
-    fontWeight: '700',
   },
   activeTurnText: {
     backgroundColor: '#2a2a28',
@@ -623,8 +624,8 @@ const styles = StyleSheet.create({
   },
   checkText: {
     color: '#be3c32',
+    fontFamily: fontFamily.extraBold,
     fontSize: 12,
-    fontWeight: '800',
     letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
@@ -641,8 +642,8 @@ const styles = StyleSheet.create({
   },
   materialAdvantageText: {
     color: '#2a2a28',
+    fontFamily: fontFamily.extraBold,
     fontSize: 18,
-    fontWeight: '800',
     fontVariant: ['tabular-nums'],
   },
   undoControlAvailable: {
@@ -675,15 +676,15 @@ const styles = StyleSheet.create({
   resultText: {
     color: '#2a2a28',
     flexShrink: 1,
+    fontFamily: fontFamily.extraBold,
     fontSize: 15,
-    fontWeight: '800',
     letterSpacing: 0.4,
   },
   offerText: {
     color: '#2a2a28',
     flexShrink: 1,
+    fontFamily: fontFamily.semiBold,
     fontSize: 12,
-    fontWeight: '700',
     letterSpacing: 0.4,
     textTransform: 'uppercase',
   },
@@ -702,8 +703,8 @@ const styles = StyleSheet.create({
   },
   controlText: {
     color: '#2a2a28',
+    fontFamily: fontFamily.semiBold,
     fontSize: 13,
-    fontWeight: '700',
   },
   primaryControl: {
     borderColor: '#2a2a28',
@@ -711,8 +712,8 @@ const styles = StyleSheet.create({
   },
   primaryControlText: {
     color: '#f6f4ef',
+    fontFamily: fontFamily.extraBold,
     fontSize: 13,
-    fontWeight: '800',
   },
   overlay: {
     position: 'absolute',
@@ -733,12 +734,13 @@ const styles = StyleSheet.create({
   },
   confirmPrompt: {
     color: '#2a2a28',
+    fontFamily: fontFamily.extraBold,
     fontSize: 18,
-    fontWeight: '800',
     letterSpacing: 0.6,
   },
   confirmBody: {
     color: '#2a2a28',
+    fontFamily: fontFamily.regular,
     fontSize: 14,
   },
   confirmActions: {
