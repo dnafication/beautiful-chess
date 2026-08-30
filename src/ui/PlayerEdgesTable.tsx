@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { applyMove, isCheck, sideToMove } from '../rules';
 import type { Game, Move, Piece, PieceColor, PromotionPieceType, Square } from '../rules';
 import { asyncStorageGameStore } from '../persistence/asyncStorageGameStore';
@@ -7,12 +7,15 @@ import { restoreSession, saveSession } from '../persistence/gameStore';
 import type { GameStorage } from '../persistence/gameStore';
 import { Board } from './Board';
 import { PieceGlyph } from './pieces/PieceGlyph';
+import { PressableScale } from './PressableScale';
 import {
   calculatePlayerEdgesLayout,
+  playerEdgeBorderWidth,
   playerEdgeCheckText,
   playerEdgePresentation,
   playerEdgeRowGap,
   playerEdgeRowHeights,
+  playerEdgeVerticalPadding,
   rotationForPlayerEdge,
   type PlayerEdge,
 } from './playerEdges';
@@ -346,7 +349,7 @@ export function PlayerEdgesTable({
             </View>
           </View>
           <View style={styles.undoRow}>
-            <Pressable
+            <PressableScale
               accessibilityRole="button"
               accessibilityLabel={undoControl.label}
               accessibilityState={{ disabled: !undoControl.available }}
@@ -371,11 +374,11 @@ export function PlayerEdgesTable({
               >
                 {undoControl.label}
               </Text>
-            </Pressable>
+            </PressableScale>
           </View>
           <View style={styles.actionsRow}>
             {edgeResult !== undefined ? (
-              <Pressable
+              <PressableScale
                 accessibilityRole="button"
                 accessibilityLabel="New game"
                 onPress={() => handleNewGame(playerEdge)}
@@ -388,7 +391,7 @@ export function PlayerEdgesTable({
                 <Text numberOfLines={1} style={styles.primaryControlText}>
                   New game
                 </Text>
-              </Pressable>
+              </PressableScale>
             ) : (
               <>
                 {edgeDrawOffer.kind === 'respond' && (
@@ -396,7 +399,7 @@ export function PlayerEdgesTable({
                     <Text numberOfLines={1} style={styles.offerText}>
                       Draw offered
                     </Text>
-                    <Pressable
+                    <PressableScale
                       accessibilityRole="button"
                       accessibilityLabel="Accept draw"
                       onPress={handleAcceptDraw}
@@ -408,8 +411,8 @@ export function PlayerEdgesTable({
                       <Text numberOfLines={1} style={styles.controlText}>
                         Accept
                       </Text>
-                    </Pressable>
-                    <Pressable
+                    </PressableScale>
+                    <PressableScale
                       accessibilityRole="button"
                       accessibilityLabel="Decline draw"
                       onPress={handleDeclineDraw}
@@ -421,7 +424,7 @@ export function PlayerEdgesTable({
                       <Text numberOfLines={1} style={styles.controlText}>
                         Decline
                       </Text>
-                    </Pressable>
+                    </PressableScale>
                   </>
                 )}
                 {edgeDrawOffer.kind === 'offered' && (
@@ -431,7 +434,7 @@ export function PlayerEdgesTable({
                 )}
                 {edgeDrawOffer.kind === 'none' && (
                   <>
-                    <Pressable
+                    <PressableScale
                       accessibilityRole="button"
                       accessibilityLabel="Offer draw"
                       onPress={() => handleOfferDraw(presentation.color)}
@@ -443,8 +446,8 @@ export function PlayerEdgesTable({
                       <Text numberOfLines={1} style={styles.controlText}>
                         Offer draw
                       </Text>
-                    </Pressable>
-                    <Pressable
+                    </PressableScale>
+                    <PressableScale
                       accessibilityRole="button"
                       accessibilityLabel="Resign"
                       onPress={() => handleResign(presentation.color)}
@@ -456,10 +459,10 @@ export function PlayerEdgesTable({
                       <Text numberOfLines={1} style={styles.controlText}>
                         Resign
                       </Text>
-                    </Pressable>
+                    </PressableScale>
                   </>
                 )}
-                <Pressable
+                <PressableScale
                   accessibilityRole="button"
                   accessibilityLabel="New game"
                   onPress={() => handleNewGame(playerEdge)}
@@ -471,7 +474,7 @@ export function PlayerEdgesTable({
                   <Text numberOfLines={1} style={styles.controlText}>
                     New game
                   </Text>
-                </Pressable>
+                </PressableScale>
               </>
             )}
           </View>
@@ -486,7 +489,12 @@ export function PlayerEdgesTable({
         style={[styles.table, { height: layout.tableHeight, width: layout.boardSize }]}
       >
         {renderPlayerEdge('far')}
-        <View style={{ width: layout.boardSize, height: layout.boardSize }}>
+        <View
+          style={[
+            styles.boardShadow,
+            { width: layout.boardSize, height: layout.boardSize },
+          ]}
+        >
           <Board
             size={layout.boardSize}
             game={game}
@@ -520,7 +528,7 @@ export function PlayerEdgesTable({
                 <Text style={styles.confirmPrompt}>Start a new game?</Text>
                 <Text style={styles.confirmBody}>The game in progress will be lost.</Text>
                 <View style={styles.confirmActions}>
-                  <Pressable
+                  <PressableScale
                     accessibilityRole="button"
                     accessibilityLabel="Start new game"
                     onPress={beginNewGame}
@@ -531,8 +539,8 @@ export function PlayerEdgesTable({
                     ]}
                   >
                     <Text style={styles.primaryControlText}>Start new game</Text>
-                  </Pressable>
-                  <Pressable
+                  </PressableScale>
+                  <PressableScale
                     accessibilityRole="button"
                     accessibilityLabel="Keep playing"
                     onPress={() => setConfirmingNewGame(undefined)}
@@ -542,7 +550,7 @@ export function PlayerEdgesTable({
                     ]}
                   >
                     <Text style={styles.controlText}>Keep playing</Text>
-                  </Pressable>
+                  </PressableScale>
                 </View>
               </View>
             </View>
@@ -568,7 +576,7 @@ const styles = StyleSheet.create({
   playerEdge: {
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 3,
+    borderWidth: playerEdgeBorderWidth,
     // The band paints after the board, so anything that escaped it would cover
     // rank 1 and swallow the touches meant for those squares. Clipping keeps
     // the board reachable even if a label grows.
@@ -576,7 +584,12 @@ const styles = StyleSheet.create({
   },
   activePlayerEdge: {
     backgroundColor: '#f6f4ef',
-    borderColor: '#2a2a28',
+    borderColor: '#d8d1c4',
+    shadowColor: '#2a2a28',
+    shadowOffset: { width: 0, height: -1 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 3,
   },
   waitingPlayerEdge: {
     backgroundColor: '#d8d1c4',
@@ -584,13 +597,27 @@ const styles = StyleSheet.create({
   },
   finishedPlayerEdge: {
     backgroundColor: '#f6f4ef',
-    borderColor: '#2a2a28',
+    borderColor: '#d8d1c4',
+    shadowColor: '#2a2a28',
+    shadowOffset: { width: 0, height: -1 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  boardShadow: {
+    // The board should read as a slab resting on the table, not a flat decal.
+    shadowColor: '#2a2a28',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.22,
+    shadowRadius: 10,
+    elevation: 6,
   },
   playerEdgeContents: {
     alignItems: 'center',
     justifyContent: 'center',
     gap: playerEdgeRowGap,
     paddingHorizontal: 8,
+    paddingVertical: playerEdgeVerticalPadding,
   },
   identityRow: {
     flexDirection: 'row',
@@ -647,8 +674,13 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   undoControlAvailable: {
-    borderColor: '#2a2a28',
+    borderColor: '#d8d1c4',
     backgroundColor: '#e8e0d0',
+    shadowColor: '#2a2a28',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   undoControlUnavailable: {
     borderColor: '#c7bdaa',
@@ -690,12 +722,17 @@ const styles = StyleSheet.create({
   },
   control: {
     borderRadius: 999,
-    borderWidth: 2,
-    borderColor: '#c7bdaa',
+    borderWidth: 1.5,
+    borderColor: '#d8d1c4',
     backgroundColor: '#e8e0d0',
     flexShrink: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    shadowColor: '#2a2a28',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   controlPressed: {
     borderColor: '#2a2a28',
@@ -709,6 +746,8 @@ const styles = StyleSheet.create({
   primaryControl: {
     borderColor: '#2a2a28',
     backgroundColor: '#2a2a28',
+    shadowOpacity: 0.2,
+    elevation: 4,
   },
   primaryControlText: {
     color: '#f6f4ef',
@@ -728,9 +767,14 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 20,
     borderRadius: 16,
-    borderWidth: 3,
-    borderColor: '#2a2a28',
+    borderWidth: 1,
+    borderColor: '#d8d1c4',
     backgroundColor: '#f6f4ef',
+    shadowColor: '#2a2a28',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
   },
   confirmPrompt: {
     color: '#2a2a28',

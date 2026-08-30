@@ -17,9 +17,10 @@
  */
 
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import type { PromotionPieceType } from '../rules';
 import { PieceGlyph } from './pieces/PieceGlyph';
+import { PressableScale } from './PressableScale';
 import type { PromotionPrompt } from './promotion';
 import { fontFamily } from './typography';
 
@@ -42,7 +43,7 @@ export function PromotionPicker({
         <Text style={styles.prompt}>Promote to</Text>
         <View style={styles.options}>
           {prompt.options.map((piece) => (
-            <Pressable
+            <PressableScale
               key={piece.type}
               accessibilityRole="button"
               accessibilityLabel={`Promote to ${piece.type}`}
@@ -54,7 +55,7 @@ export function PromotionPicker({
               ]}
             >
               <PieceGlyph piece={piece} size={optionSize * 0.82} />
-            </Pressable>
+            </PressableScale>
           ))}
         </View>
       </View>
@@ -76,9 +77,14 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 16,
     borderRadius: 16,
-    borderWidth: 3,
-    borderColor: '#2a2a28',
+    borderWidth: 1,
+    borderColor: '#d8d1c4',
     backgroundColor: '#f6f4ef',
+    shadowColor: '#2a2a28',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
   },
   prompt: {
     color: '#2a2a28',
@@ -95,9 +101,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#c7bdaa',
+    borderWidth: 1.5,
+    borderColor: '#d8d1c4',
     backgroundColor: '#e8e0d0',
+    shadowColor: '#2a2a28',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   optionPressed: {
     borderColor: '#2a2a28',
