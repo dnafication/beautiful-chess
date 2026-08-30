@@ -78,17 +78,17 @@ describe('Player Edge layout', () => {
   it('keeps the board size and position dependent only on the viewport', () => {
     expect(calculatePlayerEdgesLayout({ width: 390, height: 844 })).toEqual({
       boardSize: 390,
-      playerEdgeThickness: 112,
+      playerEdgeThickness: 144,
       playerEdgeWidth: 390,
-      tableHeight: 614,
+      tableHeight: 678,
     });
   });
 
   it('reserves fixed Player Edge space before sizing the board on shorter viewports', () => {
     expect(calculatePlayerEdgesLayout({ width: 844, height: 390 })).toEqual({
-      boardSize: 166,
-      playerEdgeThickness: 112,
-      playerEdgeWidth: 166,
+      boardSize: 102,
+      playerEdgeThickness: 144,
+      playerEdgeWidth: 102,
       tableHeight: 390,
     });
   });
@@ -96,18 +96,18 @@ describe('Player Edge layout', () => {
   it('keeps the Player Edge the same thickness on a tablet, so the board takes the extra room', () => {
     expect(calculatePlayerEdgesLayout({ width: 1024, height: 1366 })).toEqual({
       boardSize: 1024,
-      playerEdgeThickness: 112,
+      playerEdgeThickness: 144,
       playerEdgeWidth: 1024,
-      tableHeight: 1248,
+      tableHeight: 1312,
     });
   });
 
   it('never returns a negative board size', () => {
     expect(calculatePlayerEdgesLayout({ width: 100, height: 100 })).toEqual({
       boardSize: 0,
-      playerEdgeThickness: 112,
+      playerEdgeThickness: 144,
       playerEdgeWidth: 0,
-      tableHeight: 224,
+      tableHeight: 288,
     });
   });
 
@@ -127,12 +127,13 @@ describe('Player Edge layout', () => {
   });
 
   it('counts every row the Player Edge lays out, so the renderer and the layout agree', () => {
-    // The band lays its contents out as these three rows and no others, so the
+    // The band lays its contents out as these four rows and no others, so the
     // height it must clear is their sum plus the chrome around them.
     const rows =
       playerEdgeRowHeights.identity +
       playerEdgeRowHeights.tray +
-      playerEdgeRowHeights.controls;
+      playerEdgeRowHeights.undo +
+      playerEdgeRowHeights.actions;
     expect(playerEdgeContentHeight()).toBeGreaterThan(rows);
   });
 
