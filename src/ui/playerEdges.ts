@@ -38,14 +38,16 @@ export interface PlayerEdgePresentation {
 // and an empty one size the board identically, so captures never move the
 // board (#15).
 
-/** The height each of the Player Edge's three rows is laid out at. */
+/** The height each of the Player Edge's rows is laid out at. */
 export const playerEdgeRowHeights = {
   /** Colour name, turn indicator and check notice. */
   identity: 30,
   /** Material Advantage reading and the Tray of captured pieces. */
   tray: 26,
-  /** Undo, and the draw, resign and new game controls. */
-  controls: 30,
+  /** The Undo control, alone on its own row. */
+  undo: 26,
+  /** The table's actions: draw, resign and new game (or their responses). */
+  actions: 30,
 } as const;
 
 const PLAYER_EDGE_ROW_GAP = 6;
@@ -61,8 +63,9 @@ export function playerEdgeContentHeight(): number {
   const rows =
     playerEdgeRowHeights.identity +
     playerEdgeRowHeights.tray +
-    playerEdgeRowHeights.controls;
-  const gaps = PLAYER_EDGE_ROW_GAP * 2;
+    playerEdgeRowHeights.undo +
+    playerEdgeRowHeights.actions;
+  const gaps = PLAYER_EDGE_ROW_GAP * 3;
   const chrome = (PLAYER_EDGE_BORDER_WIDTH + PLAYER_EDGE_VERTICAL_PADDING) * 2;
   return rows + gaps + chrome;
 }

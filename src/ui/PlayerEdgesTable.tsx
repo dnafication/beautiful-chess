@@ -344,7 +344,7 @@ export function PlayerEdgesTable({
               ))}
             </View>
           </View>
-          <View style={styles.controlsRow}>
+          <View style={styles.undoRow}>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={undoControl.label}
@@ -371,6 +371,8 @@ export function PlayerEdgesTable({
                 {undoControl.label}
               </Text>
             </Pressable>
+          </View>
+          <View style={styles.actionsRow}>
             {edgeResult !== undefined ? (
               <Pressable
                 accessibilityRole="button"
@@ -657,13 +659,18 @@ const styles = StyleSheet.create({
   undoControlTextUnavailable: {
     color: '#b7ad9a',
   },
-  controlsRow: {
+  undoRow: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: playerEdgeRowHeights.undo,
+  },
+  actionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     flexWrap: 'nowrap',
-    gap: 6,
-    height: playerEdgeRowHeights.controls,
+    gap: 8,
+    height: playerEdgeRowHeights.actions,
   },
   resultText: {
     color: '#2a2a28',
