@@ -4,8 +4,10 @@ import {
   colorForPlayerEdge,
   nextTurnColor,
   playerEdgeCheckText,
+  playerEdgeContentHeight,
   playerEdgeForColor,
   playerEdgePresentation,
+  playerEdgeRowHeights,
   rotationForPlayerEdge,
 } from './playerEdges';
 
@@ -76,37 +78,62 @@ describe('Player Edge layout', () => {
   it('keeps the board size and position dependent only on the viewport', () => {
     expect(calculatePlayerEdgesLayout({ width: 390, height: 844 })).toEqual({
       boardSize: 390,
-      playerEdgeThickness: 108,
+      playerEdgeThickness: 112,
       playerEdgeWidth: 390,
-      tableHeight: 606,
+      tableHeight: 614,
     });
   });
 
   it('reserves fixed Player Edge space before sizing the board on shorter viewports', () => {
     expect(calculatePlayerEdgesLayout({ width: 844, height: 390 })).toEqual({
-      boardSize: 174,
-      playerEdgeThickness: 108,
-      playerEdgeWidth: 174,
+      boardSize: 166,
+      playerEdgeThickness: 112,
+      playerEdgeWidth: 166,
       tableHeight: 390,
     });
   });
 
-  it('caps large Player Edges so tablet layouts still prioritize the board', () => {
+  it('keeps the Player Edge the same thickness on a tablet, so the board takes the extra room', () => {
     expect(calculatePlayerEdgesLayout({ width: 1024, height: 1366 })).toEqual({
       boardSize: 1024,
-      playerEdgeThickness: 128,
+      playerEdgeThickness: 112,
       playerEdgeWidth: 1024,
-      tableHeight: 1280,
+      tableHeight: 1248,
     });
   });
 
   it('never returns a negative board size', () => {
     expect(calculatePlayerEdgesLayout({ width: 100, height: 100 })).toEqual({
       boardSize: 0,
-      playerEdgeThickness: 108,
+      playerEdgeThickness: 112,
       playerEdgeWidth: 0,
-      tableHeight: 216,
+      tableHeight: 224,
     });
+  });
+
+  it('is thick enough for every row it carries, so no Player Edge content spills onto the board', () => {
+    // The band paints after the board, so anything taller than the band both
+    // covers rank 1 and swallows the touches meant for it. The thickness is
+    // therefore derived from the rows rather than picked, on every viewport.
+    for (const viewport of [
+      { width: 320, height: 568 },
+      { width: 390, height: 844 },
+      { width: 844, height: 390 },
+      { width: 1024, height: 1366 },
+    ]) {
+      const { playerEdgeThickness } = calculatePlayerEdgesLayout(viewport);
+      expect(playerEdgeThickness).toBeGreaterThanOrEqual(playerEdgeContentHeight());
+    }
+  });
+
+  it('counts every row the Player Edge lays out, so the renderer and the layout agree', () => {
+    // The band lays its contents out as these three rows and no others, so the
+    // height it must clear is their sum plus the chrome around them.
+    const rows =
+      playerEdgeRowHeights.identity +
+      playerEdgeRowHeights.tray +
+      playerEdgeRowHeights.controls;
+    expect(playerEdgeContentHeight()).toBeGreaterThan(rows);
   });
 
   it('reserves the same Player Edge room whatever the Tray holds, so captures never move the board', () => {

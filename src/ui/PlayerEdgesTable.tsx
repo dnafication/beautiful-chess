@@ -11,6 +11,8 @@ import {
   calculatePlayerEdgesLayout,
   playerEdgeCheckText,
   playerEdgePresentation,
+  playerEdgeRowGap,
+  playerEdgeRowHeights,
   rotationForPlayerEdge,
   type PlayerEdge,
 } from './playerEdges';
@@ -44,6 +46,12 @@ interface Arrival {
   readonly relocations: readonly Relocation[];
   readonly nonce: number;
 }
+
+/**
+ * Width the Tray row gives up to the band's horizontal padding and to the
+ * Material Advantage reading beside it.
+ */
+const trayRowReservedWidth = 56;
 
 /**
  * Owns the one `Game`, so the turn indicator and the check notice read the real
@@ -244,10 +252,13 @@ export function PlayerEdgesTable({
     const edgeResult = resultForPlayerEdge(session, playerEdge);
     const edgeDrawOffer = drawOfferForPlayerEdge(session, playerEdge);
     const tray = trayPresentation(game, playerEdge);
+    // The Tray shares its row with the Material Advantage reading and sits
+    // inside the band's horizontal padding, so it gets what is left of the
+    // board's width rather than all of it.
     const trayMetrics = trayGlyphMetrics(
       tray.captured.length,
-      layout.boardSize,
-      Math.round(layout.playerEdgeThickness * 0.22),
+      Math.max(0, layout.boardSize - trayRowReservedWidth),
+      playerEdgeRowHeights.tray - 2,
     );
     const trayDescription =
       tray.captured.length === 0
@@ -289,21 +300,30 @@ export function PlayerEdgesTable({
         <View
           style={[
             styles.playerEdgeContents,
+            { width: layout.boardSize },
             { transform: [{ rotate: presentation.rotation }] },
           ]}
         >
-          <Text style={styles.colorText}>{colorLabel(presentation.color)}</Text>
-          <Text
-            style={[
-              styles.turnText,
-              presentation.state === 'active'
-                ? styles.activeTurnText
-                : styles.waitingTurnText,
-            ]}
-          >
-            {presentation.turnText}
-          </Text>
-          {checkText !== undefined && <Text style={styles.checkText}>{checkText}</Text>}
+          <View style={styles.identityRow}>
+            <Text style={styles.colorText}>{colorLabel(presentation.color)}</Text>
+            {edgeResult !== undefined ? (
+              <Text numberOfLines={1} style={styles.resultText}>
+                {edgeResult.text}
+              </Text>
+            ) : (
+              <Text
+                style={[
+                  styles.turnText,
+                  presentation.state === 'active'
+                    ? styles.activeTurnText
+                    : styles.waitingTurnText,
+                ]}
+              >
+                {presentation.turnText}
+              </Text>
+            )}
+            {checkText !== undefined && <Text style={styles.checkText}>{checkText}</Text>}
+          </View>
           <View style={styles.trayRow}>
             {tray.materialAdvantageText !== undefined && (
               <Text style={styles.materialAdvantageText}>
@@ -324,34 +344,34 @@ export function PlayerEdgesTable({
               ))}
             </View>
           </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={undoControl.label}
-            accessibilityState={{ disabled: !undoControl.available }}
-            disabled={!undoControl.available}
-            onPress={handleUndo}
-            style={({ pressed }) => [
-              styles.undoControl,
-              undoControl.available
-                ? styles.undoControlAvailable
-                : styles.undoControlUnavailable,
-              pressed && undoControl.available && styles.undoControlPressed,
-            ]}
-          >
-            <Text
-              style={[
-                styles.undoControlText,
+          <View style={styles.controlsRow}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={undoControl.label}
+              accessibilityState={{ disabled: !undoControl.available }}
+              disabled={!undoControl.available}
+              onPress={handleUndo}
+              style={({ pressed }) => [
+                styles.control,
                 undoControl.available
-                  ? styles.undoControlTextAvailable
-                  : styles.undoControlTextUnavailable,
+                  ? styles.undoControlAvailable
+                  : styles.undoControlUnavailable,
+                pressed && undoControl.available && styles.controlPressed,
               ]}
             >
-              {undoControl.label}
-            </Text>
-          </Pressable>
-          {edgeResult !== undefined ? (
-            <View style={styles.controls}>
-              <Text style={styles.resultText}>{edgeResult.text}</Text>
+              <Text
+                numberOfLines={1}
+                style={[
+                  styles.controlText,
+                  undoControl.available
+                    ? styles.undoControlTextAvailable
+                    : styles.undoControlTextUnavailable,
+                ]}
+              >
+                {undoControl.label}
+              </Text>
+            </Pressable>
+            {edgeResult !== undefined ? (
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="New game"
@@ -362,80 +382,96 @@ export function PlayerEdgesTable({
                   pressed && styles.controlPressed,
                 ]}
               >
-                <Text style={styles.primaryControlText}>New game</Text>
+                <Text numberOfLines={1} style={styles.primaryControlText}>
+                  New game
+                </Text>
               </Pressable>
-            </View>
-          ) : (
-            <View style={styles.controls}>
-              {edgeDrawOffer.kind === 'respond' && (
-                <>
-                  <Text style={styles.offerText}>Draw offered</Text>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Accept draw"
-                    onPress={handleAcceptDraw}
-                    style={({ pressed }) => [
-                      styles.control,
-                      pressed && styles.controlPressed,
-                    ]}
-                  >
-                    <Text style={styles.controlText}>Accept</Text>
-                  </Pressable>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Decline draw"
-                    onPress={handleDeclineDraw}
-                    style={({ pressed }) => [
-                      styles.control,
-                      pressed && styles.controlPressed,
-                    ]}
-                  >
-                    <Text style={styles.controlText}>Decline</Text>
-                  </Pressable>
-                </>
-              )}
-              {edgeDrawOffer.kind === 'offered' && (
-                <Text style={styles.offerText}>Draw offered</Text>
-              )}
-              {edgeDrawOffer.kind === 'none' && (
-                <>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Offer draw"
-                    onPress={() => handleOfferDraw(presentation.color)}
-                    style={({ pressed }) => [
-                      styles.control,
-                      pressed && styles.controlPressed,
-                    ]}
-                  >
-                    <Text style={styles.controlText}>Offer draw</Text>
-                  </Pressable>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Resign"
-                    onPress={() => handleResign(presentation.color)}
-                    style={({ pressed }) => [
-                      styles.control,
-                      pressed && styles.controlPressed,
-                    ]}
-                  >
-                    <Text style={styles.controlText}>Resign</Text>
-                  </Pressable>
-                </>
-              )}
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="New game"
-                onPress={() => handleNewGame(playerEdge)}
-                style={({ pressed }) => [
-                  styles.control,
-                  pressed && styles.controlPressed,
-                ]}
-              >
-                <Text style={styles.controlText}>New game</Text>
-              </Pressable>
-            </View>
-          )}
+            ) : (
+              <>
+                {edgeDrawOffer.kind === 'respond' && (
+                  <>
+                    <Text numberOfLines={1} style={styles.offerText}>
+                      Draw offered
+                    </Text>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Accept draw"
+                      onPress={handleAcceptDraw}
+                      style={({ pressed }) => [
+                        styles.control,
+                        pressed && styles.controlPressed,
+                      ]}
+                    >
+                      <Text numberOfLines={1} style={styles.controlText}>
+                        Accept
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Decline draw"
+                      onPress={handleDeclineDraw}
+                      style={({ pressed }) => [
+                        styles.control,
+                        pressed && styles.controlPressed,
+                      ]}
+                    >
+                      <Text numberOfLines={1} style={styles.controlText}>
+                        Decline
+                      </Text>
+                    </Pressable>
+                  </>
+                )}
+                {edgeDrawOffer.kind === 'offered' && (
+                  <Text numberOfLines={1} style={styles.offerText}>
+                    Draw offered
+                  </Text>
+                )}
+                {edgeDrawOffer.kind === 'none' && (
+                  <>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Offer draw"
+                      onPress={() => handleOfferDraw(presentation.color)}
+                      style={({ pressed }) => [
+                        styles.control,
+                        pressed && styles.controlPressed,
+                      ]}
+                    >
+                      <Text numberOfLines={1} style={styles.controlText}>
+                        Offer draw
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Resign"
+                      onPress={() => handleResign(presentation.color)}
+                      style={({ pressed }) => [
+                        styles.control,
+                        pressed && styles.controlPressed,
+                      ]}
+                    >
+                      <Text numberOfLines={1} style={styles.controlText}>
+                        Resign
+                      </Text>
+                    </Pressable>
+                  </>
+                )}
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="New game"
+                  onPress={() => handleNewGame(playerEdge)}
+                  style={({ pressed }) => [
+                    styles.control,
+                    pressed && styles.controlPressed,
+                  ]}
+                >
+                  <Text numberOfLines={1} style={styles.controlText}>
+                    New game
+                  </Text>
+                </Pressable>
+              </>
+            )}
+          </View>
         </View>
       </View>
     );
@@ -530,6 +566,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
+    // The band paints after the board, so anything that escaped it would cover
+    // rank 1 and swallow the touches meant for those squares. Clipping keeps
+    // the board reachable even if a label grows.
+    overflow: 'hidden',
   },
   activePlayerEdge: {
     backgroundColor: '#f6f4ef',
@@ -545,11 +585,20 @@ const styles = StyleSheet.create({
   },
   playerEdgeContents: {
     alignItems: 'center',
-    gap: 6,
+    justifyContent: 'center',
+    gap: playerEdgeRowGap,
+    paddingHorizontal: 8,
+  },
+  identityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    height: playerEdgeRowHeights.identity,
   },
   colorText: {
     color: '#2a2a28',
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: '800',
     letterSpacing: 1.2,
     textTransform: 'uppercase',
@@ -557,9 +606,9 @@ const styles = StyleSheet.create({
   turnText: {
     borderRadius: 999,
     overflow: 'hidden',
-    paddingHorizontal: 16,
-    paddingVertical: 5,
-    fontSize: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 3,
+    fontSize: 13,
     fontWeight: '700',
   },
   activeTurnText: {
@@ -572,7 +621,7 @@ const styles = StyleSheet.create({
   },
   checkText: {
     color: '#be3c32',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.8,
     textTransform: 'uppercase',
@@ -580,7 +629,9 @@ const styles = StyleSheet.create({
   trayRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
+    height: playerEdgeRowHeights.tray,
   },
   trayGlyphs: {
     flexDirection: 'row',
@@ -588,15 +639,9 @@ const styles = StyleSheet.create({
   },
   materialAdvantageText: {
     color: '#2a2a28',
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
-  },
-  undoControl: {
-    borderRadius: 999,
-    borderWidth: 2,
-    paddingHorizontal: 16,
-    paddingVertical: 5,
   },
   undoControlAvailable: {
     borderColor: '#2a2a28',
@@ -606,39 +651,33 @@ const styles = StyleSheet.create({
     borderColor: '#c7bdaa',
     backgroundColor: 'transparent',
   },
-  undoControlPressed: {
-    backgroundColor: '#d8d1c4',
-  },
-  undoControlText: {
-    fontSize: 14,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-  },
   undoControlTextAvailable: {
     color: '#2a2a28',
   },
   undoControlTextUnavailable: {
     color: '#b7ad9a',
   },
-  controls: {
+  controlsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: 8,
+    flexWrap: 'nowrap',
+    gap: 6,
+    height: playerEdgeRowHeights.controls,
   },
   resultText: {
     color: '#2a2a28',
-    fontSize: 18,
+    flexShrink: 1,
+    fontSize: 15,
     fontWeight: '800',
-    letterSpacing: 0.6,
+    letterSpacing: 0.4,
   },
   offerText: {
     color: '#2a2a28',
-    fontSize: 14,
+    flexShrink: 1,
+    fontSize: 12,
     fontWeight: '700',
-    letterSpacing: 0.6,
+    letterSpacing: 0.4,
     textTransform: 'uppercase',
   },
   control: {
@@ -646,8 +685,9 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#c7bdaa',
     backgroundColor: '#e8e0d0',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    flexShrink: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
   },
   controlPressed: {
     borderColor: '#2a2a28',
@@ -655,7 +695,7 @@ const styles = StyleSheet.create({
   },
   controlText: {
     color: '#2a2a28',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
   },
   primaryControl: {
@@ -664,7 +704,7 @@ const styles = StyleSheet.create({
   },
   primaryControlText: {
     color: '#f6f4ef',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
   },
   overlay: {
