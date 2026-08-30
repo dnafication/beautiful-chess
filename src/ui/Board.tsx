@@ -16,7 +16,7 @@
  * glyph is named here — swapping the artwork is a change to one file.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, PanResponder, View } from 'react-native';
 import { pieceAt } from '../rules';
 import type { File, Game, Move, Rank, Square } from '../rules';
@@ -116,6 +116,17 @@ export function Board({
   const squareSize = size / 8;
   const checkedSquare = checkedKingSquare(game);
   const [drag, setDrag] = useState<DragState | undefined>(undefined);
+  // The gesture handlers are rebuilt only when the position or geometry
+  // changes, so they cannot read `drag` from their closure without going stale.
+  // They read this ref instead. That matters for correctness and not just for
+  // freshness: reading the drag inside a `setDrag` updater would put the parent
+  // callbacks below into React's render phase, where updating another component
+  // is precisely what React warns about.
+  const dragRef = useRef<DragState | undefined>(undefined);
+  const changeDrag = useCallback((next: DragState | undefined) => {
+    dragRef.current = next;
+    setDrag(next);
+  }, []);
   const arrivalValue = useState(() => new Animated.Value(0))[0];
   const [settledNonce, setSettledNonce] = useState<number | undefined>(undefined);
 
@@ -143,8 +154,15 @@ export function Board({
   const arrivalRelocations =
     arrival !== undefined && arrival.nonce !== settledNonce ? arrival.relocations : [];
 
+  // `react-hooks/refs` sees a ref passed into a function during render and
+  // cannot tell that these are gesture handlers, run by the responder system
+  // long after this render. Rebuilding the responder when the drag changes
+  // instead would be worse than the warning it silences: `PanResponder.create`
+  // holds the accumulated gesture state, so a responder replaced mid-gesture
+  // reports dx/dy of zero and every drop is mistaken for a tap.
   const panResponder = React.useMemo(
     () =>
+      // eslint-disable-next-line react-hooks/refs
       PanResponder.create({
         onStartShouldSetPanResponder: () => true,
         onMoveShouldSetPanResponder: () => true,
@@ -156,37 +174,32 @@ export function Board({
             return;
           }
           const pointer = new Animated.ValueXY({ x: locationX, y: locationY });
-          setDrag({ from, destinations: grabbed.destinations, pointer });
+          changeDrag({ from, destinations: grabbed.destinations, pointer });
         },
         onPanResponderMove: (event) => {
           const { locationX, locationY } = event.nativeEvent;
-          setDrag((current) => {
-            if (current === undefined) {
-              return current;
-            }
-            current.pointer.setValue({ x: locationX, y: locationY });
-            return current;
-          });
+          // The pointer is an animated value, so moving it drives the drag
+          // without a re-render and there is no state to update here.
+          dragRef.current?.pointer.setValue({ x: locationX, y: locationY });
         },
         onPanResponderRelease: (event, gesture) => {
           const { locationX, locationY } = event.nativeEvent;
           const movedFar =
             Math.abs(gesture.dx) > DRAG_THRESHOLD ||
             Math.abs(gesture.dy) > DRAG_THRESHOLD;
-          setDrag((current) => {
-            if (current !== undefined && movedFar) {
-              onDropMove(current.from, squareAt(locationX, locationY, squareSize));
-            } else {
-              onTapSquare(squareAt(locationX, locationY, squareSize));
-            }
-            return undefined;
-          });
+          const released = dragRef.current;
+          changeDrag(undefined);
+          if (released !== undefined && movedFar) {
+            onDropMove(released.from, squareAt(locationX, locationY, squareSize));
+          } else {
+            onTapSquare(squareAt(locationX, locationY, squareSize));
+          }
         },
-        onPanResponderTerminate: () => setDrag(undefined),
+        onPanResponderTerminate: () => changeDrag(undefined),
       }),
     // Rebuild when the position or geometry changes so gestures read the
     // current game rather than a stale closure.
-    [game, squareSize, onTapSquare, onDropMove],
+    [game, squareSize, onTapSquare, onDropMove, changeDrag],
   );
 
   // Destinations to show: the dragged piece's while dragging, else the
