@@ -25,14 +25,47 @@ export interface PlayerEdgePresentation {
 }
 
 // The Player Edge carries the turn indicator, the check notice, the player's
-// Tray of captured pieces and their Material Advantage reading, so the band
-// reserves room for all of it. That room is fixed by the viewport and never by
-// the Tray's contents: a full Tray and an empty one size the board identically,
-// so captures never move the board (#15).
-const MIN_PLAYER_EDGE_THICKNESS = 108;
-const MAX_PLAYER_EDGE_THICKNESS = 128;
-const PLAYER_EDGE_VIEWPORT_FRACTION = 0.16;
+// Tray of captured pieces, their Material Advantage reading and the controls
+// they can reach without turning the device. It lays those out as three fixed
+// rows, and the band is exactly thick enough to hold them.
+//
+// The thickness is derived from those rows rather than picked from the
+// viewport, because the band paints after the board: content taller than the
+// band both covers rank 1 and swallows the touches meant for it. Deriving it
+// keeps that impossible.
+//
+// The room is fixed by the rows and never by the Tray's contents: a full Tray
+// and an empty one size the board identically, so captures never move the
+// board (#15).
+
+/** The height each of the Player Edge's three rows is laid out at. */
+export const playerEdgeRowHeights = {
+  /** Colour name, turn indicator and check notice. */
+  identity: 30,
+  /** Material Advantage reading and the Tray of captured pieces. */
+  tray: 26,
+  /** Undo, and the draw, resign and new game controls. */
+  controls: 30,
+} as const;
+
+const PLAYER_EDGE_ROW_GAP = 6;
+const PLAYER_EDGE_BORDER_WIDTH = 3;
+const PLAYER_EDGE_VERTICAL_PADDING = 4;
 const WAITING_PLAYER_EDGE_OPACITY = 0.38;
+
+/** The space the Player Edge leaves between its rows. */
+export const playerEdgeRowGap = PLAYER_EDGE_ROW_GAP;
+
+/** How tall the Player Edge's rows stack, including the chrome around them. */
+export function playerEdgeContentHeight(): number {
+  const rows =
+    playerEdgeRowHeights.identity +
+    playerEdgeRowHeights.tray +
+    playerEdgeRowHeights.controls;
+  const gaps = PLAYER_EDGE_ROW_GAP * 2;
+  const chrome = (PLAYER_EDGE_BORDER_WIDTH + PLAYER_EDGE_VERTICAL_PADDING) * 2;
+  return rows + gaps + chrome;
+}
 
 export function playerEdgeForColor(color: PieceColor): PlayerEdge {
   return color === 'white' ? 'near' : 'far';
@@ -78,14 +111,7 @@ export function playerEdgePresentation(
 }
 
 export function calculatePlayerEdgesLayout(viewport: ViewportSize): PlayerEdgesLayout {
-  const shorterSide = Math.min(viewport.width, viewport.height);
-  const preferredPlayerEdgeThickness = Math.round(
-    shorterSide * PLAYER_EDGE_VIEWPORT_FRACTION,
-  );
-  const playerEdgeThickness = Math.min(
-    MAX_PLAYER_EDGE_THICKNESS,
-    Math.max(MIN_PLAYER_EDGE_THICKNESS, preferredPlayerEdgeThickness),
-  );
+  const playerEdgeThickness = playerEdgeContentHeight();
   const boardSize = Math.max(
     0,
     Math.min(viewport.width, viewport.height - playerEdgeThickness * 2),
