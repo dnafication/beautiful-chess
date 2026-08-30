@@ -21,6 +21,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { PromotionPieceType } from '../rules';
 import { PieceGlyph } from './pieces/PieceGlyph';
 import type { PromotionPrompt } from './promotion';
+import { fontFamily } from './typography';
 
 interface PromotionPickerProps {
   readonly prompt: PromotionPrompt;
@@ -81,8 +82,8 @@ const styles = StyleSheet.create({
   },
   prompt: {
     color: '#2a2a28',
+    fontFamily: fontFamily.semiBold,
     fontSize: 16,
-    fontWeight: '800',
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
