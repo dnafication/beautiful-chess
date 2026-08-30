@@ -288,195 +288,207 @@ export function PlayerEdgesTable({
         accessibilityLabel={label}
         key={playerEdge}
         style={[
-          styles.playerEdge,
           {
             height: layout.playerEdgeThickness,
             opacity: finished ? 1 : presentation.opacity,
             width: layout.playerEdgeWidth,
           },
-          finished
-            ? styles.finishedPlayerEdge
-            : presentation.state === 'active'
-              ? styles.activePlayerEdge
-              : styles.waitingPlayerEdge,
+          // The shadow lives on this outer view, not the one that clips: a
+          // view can't cast a visible shadow past its own overflow: 'hidden'.
+          finished || presentation.state === 'active'
+            ? styles.playerEdgeShadow
+            : undefined,
         ]}
       >
         <View
           style={[
-            styles.playerEdgeContents,
-            { width: layout.boardSize },
-            { transform: [{ rotate: presentation.rotation }] },
+            styles.playerEdge,
+            finished
+              ? styles.finishedPlayerEdge
+              : presentation.state === 'active'
+                ? styles.activePlayerEdge
+                : styles.waitingPlayerEdge,
           ]}
         >
-          <View style={styles.identityRow}>
-            <Text style={styles.colorText}>{colorLabel(presentation.color)}</Text>
-            {edgeResult !== undefined ? (
-              <Text numberOfLines={1} style={styles.resultText}>
-                {edgeResult.text}
-              </Text>
-            ) : (
-              <Text
-                style={[
-                  styles.turnText,
-                  presentation.state === 'active'
-                    ? styles.activeTurnText
-                    : styles.waitingTurnText,
-                ]}
-              >
-                {presentation.turnText}
-              </Text>
-            )}
-            {checkText !== undefined && <Text style={styles.checkText}>{checkText}</Text>}
-          </View>
-          <View style={styles.trayRow}>
-            {tray.materialAdvantageText !== undefined && (
-              <Text style={styles.materialAdvantageText}>
-                {tray.materialAdvantageText}
-              </Text>
-            )}
-            <View style={styles.trayGlyphs}>
-              {tray.captured.map((piece: Piece, index: number) => (
-                <View
-                  key={index}
-                  style={{
-                    marginLeft:
-                      index === 0 ? 0 : trayMetrics.step - trayMetrics.glyphSize,
-                  }}
+          <View
+            style={[
+              styles.playerEdgeContents,
+              { width: layout.boardSize },
+              { transform: [{ rotate: presentation.rotation }] },
+            ]}
+          >
+            <View style={styles.identityRow}>
+              <Text style={styles.colorText}>{colorLabel(presentation.color)}</Text>
+              {edgeResult !== undefined ? (
+                <Text numberOfLines={1} style={styles.resultText}>
+                  {edgeResult.text}
+                </Text>
+              ) : (
+                <Text
+                  style={[
+                    styles.turnText,
+                    presentation.state === 'active'
+                      ? styles.activeTurnText
+                      : styles.waitingTurnText,
+                  ]}
                 >
-                  <PieceGlyph piece={piece} size={trayMetrics.glyphSize} />
-                </View>
-              ))}
+                  {presentation.turnText}
+                </Text>
+              )}
+              {checkText !== undefined && (
+                <Text style={styles.checkText}>{checkText}</Text>
+              )}
             </View>
-          </View>
-          <View style={styles.undoRow}>
-            <PressableScale
-              accessibilityRole="button"
-              accessibilityLabel={undoControl.label}
-              accessibilityState={{ disabled: !undoControl.available }}
-              disabled={!undoControl.available}
-              onPress={handleUndo}
-              style={({ pressed }) => [
-                styles.control,
-                undoControl.available
-                  ? styles.undoControlAvailable
-                  : styles.undoControlUnavailable,
-                pressed && undoControl.available && styles.controlPressed,
-              ]}
-            >
-              <Text
-                numberOfLines={1}
-                style={[
-                  styles.controlText,
-                  undoControl.available
-                    ? styles.undoControlTextAvailable
-                    : styles.undoControlTextUnavailable,
-                ]}
-              >
-                {undoControl.label}
-              </Text>
-            </PressableScale>
-          </View>
-          <View style={styles.actionsRow}>
-            {edgeResult !== undefined ? (
+            <View style={styles.trayRow}>
+              {tray.materialAdvantageText !== undefined && (
+                <Text style={styles.materialAdvantageText}>
+                  {tray.materialAdvantageText}
+                </Text>
+              )}
+              <View style={styles.trayGlyphs}>
+                {tray.captured.map((piece: Piece, index: number) => (
+                  <View
+                    key={index}
+                    style={{
+                      marginLeft:
+                        index === 0 ? 0 : trayMetrics.step - trayMetrics.glyphSize,
+                    }}
+                  >
+                    <PieceGlyph piece={piece} size={trayMetrics.glyphSize} />
+                  </View>
+                ))}
+              </View>
+            </View>
+            <View style={styles.undoRow}>
               <PressableScale
                 accessibilityRole="button"
-                accessibilityLabel="New game"
-                onPress={() => handleNewGame(playerEdge)}
+                accessibilityLabel={undoControl.label}
+                accessibilityState={{ disabled: !undoControl.available }}
+                disabled={!undoControl.available}
+                onPress={handleUndo}
                 style={({ pressed }) => [
                   styles.control,
-                  styles.primaryControl,
-                  pressed && styles.controlPressed,
+                  undoControl.available
+                    ? styles.undoControlAvailable
+                    : styles.undoControlUnavailable,
+                  pressed && undoControl.available && styles.controlPressed,
                 ]}
               >
-                <Text numberOfLines={1} style={styles.primaryControlText}>
-                  New game
+                <Text
+                  numberOfLines={1}
+                  style={[
+                    styles.controlText,
+                    undoControl.available
+                      ? styles.undoControlTextAvailable
+                      : styles.undoControlTextUnavailable,
+                  ]}
+                >
+                  {undoControl.label}
                 </Text>
               </PressableScale>
-            ) : (
-              <>
-                {edgeDrawOffer.kind === 'respond' && (
-                  <>
-                    <Text numberOfLines={1} style={styles.offerText}>
-                      Draw offered
-                    </Text>
-                    <PressableScale
-                      accessibilityRole="button"
-                      accessibilityLabel="Accept draw"
-                      onPress={handleAcceptDraw}
-                      style={({ pressed }) => [
-                        styles.control,
-                        pressed && styles.controlPressed,
-                      ]}
-                    >
-                      <Text numberOfLines={1} style={styles.controlText}>
-                        Accept
-                      </Text>
-                    </PressableScale>
-                    <PressableScale
-                      accessibilityRole="button"
-                      accessibilityLabel="Decline draw"
-                      onPress={handleDeclineDraw}
-                      style={({ pressed }) => [
-                        styles.control,
-                        pressed && styles.controlPressed,
-                      ]}
-                    >
-                      <Text numberOfLines={1} style={styles.controlText}>
-                        Decline
-                      </Text>
-                    </PressableScale>
-                  </>
-                )}
-                {edgeDrawOffer.kind === 'offered' && (
-                  <Text numberOfLines={1} style={styles.offerText}>
-                    Draw offered
-                  </Text>
-                )}
-                {edgeDrawOffer.kind === 'none' && (
-                  <>
-                    <PressableScale
-                      accessibilityRole="button"
-                      accessibilityLabel="Offer draw"
-                      onPress={() => handleOfferDraw(presentation.color)}
-                      style={({ pressed }) => [
-                        styles.control,
-                        pressed && styles.controlPressed,
-                      ]}
-                    >
-                      <Text numberOfLines={1} style={styles.controlText}>
-                        Offer draw
-                      </Text>
-                    </PressableScale>
-                    <PressableScale
-                      accessibilityRole="button"
-                      accessibilityLabel="Resign"
-                      onPress={() => handleResign(presentation.color)}
-                      style={({ pressed }) => [
-                        styles.control,
-                        pressed && styles.controlPressed,
-                      ]}
-                    >
-                      <Text numberOfLines={1} style={styles.controlText}>
-                        Resign
-                      </Text>
-                    </PressableScale>
-                  </>
-                )}
+            </View>
+            <View style={styles.actionsRow}>
+              {edgeResult !== undefined ? (
                 <PressableScale
                   accessibilityRole="button"
                   accessibilityLabel="New game"
                   onPress={() => handleNewGame(playerEdge)}
                   style={({ pressed }) => [
                     styles.control,
+                    styles.primaryControl,
                     pressed && styles.controlPressed,
                   ]}
                 >
-                  <Text numberOfLines={1} style={styles.controlText}>
+                  <Text numberOfLines={1} style={styles.primaryControlText}>
                     New game
                   </Text>
                 </PressableScale>
-              </>
-            )}
+              ) : (
+                <>
+                  {edgeDrawOffer.kind === 'respond' && (
+                    <>
+                      <Text numberOfLines={1} style={styles.offerText}>
+                        Draw offered
+                      </Text>
+                      <PressableScale
+                        accessibilityRole="button"
+                        accessibilityLabel="Accept draw"
+                        onPress={handleAcceptDraw}
+                        style={({ pressed }) => [
+                          styles.control,
+                          pressed && styles.controlPressed,
+                        ]}
+                      >
+                        <Text numberOfLines={1} style={styles.controlText}>
+                          Accept
+                        </Text>
+                      </PressableScale>
+                      <PressableScale
+                        accessibilityRole="button"
+                        accessibilityLabel="Decline draw"
+                        onPress={handleDeclineDraw}
+                        style={({ pressed }) => [
+                          styles.control,
+                          pressed && styles.controlPressed,
+                        ]}
+                      >
+                        <Text numberOfLines={1} style={styles.controlText}>
+                          Decline
+                        </Text>
+                      </PressableScale>
+                    </>
+                  )}
+                  {edgeDrawOffer.kind === 'offered' && (
+                    <Text numberOfLines={1} style={styles.offerText}>
+                      Draw offered
+                    </Text>
+                  )}
+                  {edgeDrawOffer.kind === 'none' && (
+                    <>
+                      <PressableScale
+                        accessibilityRole="button"
+                        accessibilityLabel="Offer draw"
+                        onPress={() => handleOfferDraw(presentation.color)}
+                        style={({ pressed }) => [
+                          styles.control,
+                          pressed && styles.controlPressed,
+                        ]}
+                      >
+                        <Text numberOfLines={1} style={styles.controlText}>
+                          Offer draw
+                        </Text>
+                      </PressableScale>
+                      <PressableScale
+                        accessibilityRole="button"
+                        accessibilityLabel="Resign"
+                        onPress={() => handleResign(presentation.color)}
+                        style={({ pressed }) => [
+                          styles.control,
+                          pressed && styles.controlPressed,
+                        ]}
+                      >
+                        <Text numberOfLines={1} style={styles.controlText}>
+                          Resign
+                        </Text>
+                      </PressableScale>
+                    </>
+                  )}
+                  <PressableScale
+                    accessibilityRole="button"
+                    accessibilityLabel="New game"
+                    onPress={() => handleNewGame(playerEdge)}
+                    style={({ pressed }) => [
+                      styles.control,
+                      pressed && styles.controlPressed,
+                    ]}
+                  >
+                    <Text numberOfLines={1} style={styles.controlText}>
+                      New game
+                    </Text>
+                  </PressableScale>
+                </>
+              )}
+            </View>
           </View>
         </View>
       </View>
@@ -574,6 +586,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   playerEdge: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: playerEdgeBorderWidth,
@@ -582,14 +595,19 @@ const styles = StyleSheet.create({
     // the board reachable even if a label grows.
     overflow: 'hidden',
   },
-  activePlayerEdge: {
-    backgroundColor: '#f6f4ef',
-    borderColor: '#d8d1c4',
+  // Shadows can't render past a clipping view's own overflow: 'hidden', so
+  // the active/finished band's shadow lives on the wrapper one level up from
+  // `playerEdge` rather than on `playerEdge` itself.
+  playerEdgeShadow: {
     shadowColor: '#2a2a28',
     shadowOffset: { width: 0, height: -1 },
     shadowOpacity: 0.12,
     shadowRadius: 6,
     elevation: 3,
+  },
+  activePlayerEdge: {
+    backgroundColor: '#f6f4ef',
+    borderColor: '#d8d1c4',
   },
   waitingPlayerEdge: {
     backgroundColor: '#d8d1c4',
@@ -598,11 +616,6 @@ const styles = StyleSheet.create({
   finishedPlayerEdge: {
     backgroundColor: '#f6f4ef',
     borderColor: '#d8d1c4',
-    shadowColor: '#2a2a28',
-    shadowOffset: { width: 0, height: -1 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 3,
   },
   boardShadow: {
     // The board should read as a slab resting on the table, not a flat decal.
