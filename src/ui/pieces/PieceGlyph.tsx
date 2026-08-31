@@ -14,6 +14,8 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import type { Piece } from '../../rules';
 import { glyphFor } from './staunton';
 import type { ResolvedShape } from './staunton';
+import { defaultPieceTheme } from './themes';
+import type { PieceTheme } from './themes';
 
 function renderShape(shape: ResolvedShape, index: number): React.ReactElement {
   switch (shape.kind) {
@@ -62,9 +64,12 @@ function renderShape(shape: ResolvedShape, index: number): React.ReactElement {
 export function PieceGlyph({
   piece,
   size,
+  theme = defaultPieceTheme,
 }: {
   readonly piece: Piece;
   readonly size: number;
+  /** The colourway to draw the piece in. Defaults to the ivory theme. */
+  readonly theme?: PieceTheme;
 }): React.ReactElement {
   return (
     <View
@@ -76,7 +81,7 @@ export function PieceGlyph({
       }}
     >
       <Svg viewBox="0 0 100 100" width={size} height={size}>
-        {glyphFor(piece).shapes.map((shape, index) => renderShape(shape, index))}
+        {glyphFor(piece, theme).shapes.map((shape, index) => renderShape(shape, index))}
       </Svg>
     </View>
   );

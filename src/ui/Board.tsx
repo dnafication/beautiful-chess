@@ -21,22 +21,17 @@ import { Animated, PanResponder, View } from 'react-native';
 import { pieceAt } from '../rules';
 import type { File, Game, Move, Rank, Square } from '../rules';
 import { PieceGlyph } from './pieces/PieceGlyph';
+import { defaultPieceTheme } from './pieces/themes';
+import type { PieceTheme } from './pieces/themes';
 import { checkedKingSquare, selectionFor } from './selection';
 import type { Destination, Relocation, Selection } from './selection';
 
-// ── Square colours ─────────────────────────────────────────────────────────
-// Restrained pair that sits with the #2a2a28 / #f6f4ef piece palette:
-// warm off-white for light squares, desaturated warm brown for dark squares.
-// Both are muted so neither competes with the pieces themselves.
-const SQUARE_LIGHT = '#e8e0d0';
-const SQUARE_DARK = '#9e8b72';
-
-// ── Marker colours ───────────────────────────────────────────────────────────
-// Translucent so the square colour and any piece still read through them.
-const SELECTED_TINT = 'rgba(90, 140, 90, 0.55)';
-const LAST_MOVE_TINT = 'rgba(120, 150, 90, 0.40)';
+// ── Check tint ───────────────────────────────────────────────────────────────
+// The check warning is always red regardless of the active theme. It is a
+// safety signal — players must not miss it — and red carries that meaning
+// across every visual context. Theming it would risk it blending into a
+// red-toned board (e.g. Rosewood) and going unnoticed.
 const CHECK_TINT = 'rgba(190, 60, 50, 0.60)';
-const DESTINATION_MARK = 'rgba(40, 40, 38, 0.30)';
 
 // ── Layout ─────────────────────────────────────────────────────────────────
 
@@ -94,6 +89,8 @@ interface BoardProps {
   readonly onTapSquare: (square: Square) => void;
   /** A drag released from one square onto another, for drag play. */
   readonly onDropMove: (from: Square, to: Square) => void;
+  /** The active colourway. Defaults to the ivory theme. */
+  readonly theme?: PieceTheme;
 }
 
 interface DragState {
@@ -112,8 +109,17 @@ export function Board({
   arrival,
   onTapSquare,
   onDropMove,
+  theme = defaultPieceTheme,
 }: BoardProps): React.ReactElement {
   const squareSize = size / 8;
+  // Every mark the board makes is the theme's one marker colour at three
+  // strengths, so selection, the move just played and the legal destinations
+  // read as one family rather than three unrelated highlights. All three are
+  // translucent, so the square beneath and any piece standing on it still read
+  // through: the mark annotates the board, it does not replace it.
+  const selectedTint = `${theme.marker}8c`; // 55%
+  const lastMoveTint = `${theme.marker}66`; // 40%
+  const destinationMark = `${theme.marker}4d`; // 30%
   const checkedSquare = checkedKingSquare(game);
   const [drag, setDrag] = useState<DragState | undefined>(undefined);
   // The gesture handlers are rebuilt only when the position or geometry
@@ -235,9 +241,9 @@ export function Board({
           const tint = isChecked
             ? CHECK_TINT
             : isSelected
-              ? SELECTED_TINT
+              ? selectedTint
               : isLastMove
-                ? LAST_MOVE_TINT
+                ? lastMoveTint
                 : undefined;
 
           return (
@@ -252,7 +258,7 @@ export function Board({
                 height: squareSize,
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: isLight ? SQUARE_LIGHT : SQUARE_DARK,
+                backgroundColor: isLight ? theme.squareLight : theme.squareDark,
               }}
             >
               {tint !== undefined && (
@@ -266,7 +272,7 @@ export function Board({
                 />
               )}
               {piece !== undefined && !hiddenSquares.has(square) && (
-                <PieceGlyph piece={piece} size={squareSize} />
+                <PieceGlyph piece={piece} size={squareSize} theme={theme} />
               )}
               {destination !== undefined &&
                 (destination.isCapture ? (
@@ -277,7 +283,7 @@ export function Board({
                       height: squareSize,
                       borderRadius: squareSize / 2,
                       borderWidth: squareSize * 0.09,
-                      borderColor: DESTINATION_MARK,
+                      borderColor: destinationMark,
                     }}
                   />
                 ) : (
@@ -287,7 +293,7 @@ export function Board({
                       width: squareSize * 0.3,
                       height: squareSize * 0.3,
                       borderRadius: squareSize * 0.15,
-                      backgroundColor: DESTINATION_MARK,
+                      backgroundColor: destinationMark,
                     }}
                   />
                 ))}
@@ -324,7 +330,7 @@ export function Board({
               transform: [{ translateX }, { translateY }],
             }}
           >
-            <PieceGlyph piece={piece} size={squareSize} />
+            <PieceGlyph piece={piece} size={squareSize} theme={theme} />
           </Animated.View>
         );
       })}
@@ -346,7 +352,7 @@ export function Board({
                 height: squareSize,
               }}
             >
-              <PieceGlyph piece={piece} size={squareSize} />
+              <PieceGlyph piece={piece} size={squareSize} theme={theme} />
             </Animated.View>
           );
         })()}

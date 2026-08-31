@@ -20,6 +20,8 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { PromotionPieceType } from '../rules';
 import { PieceGlyph } from './pieces/PieceGlyph';
+import { defaultPieceTheme } from './pieces/themes';
+import type { PieceTheme } from './pieces/themes';
 import { PressableScale } from './PressableScale';
 import type { PromotionPrompt } from './promotion';
 import { fontFamily } from './typography';
@@ -28,12 +30,15 @@ interface PromotionPickerProps {
   readonly prompt: PromotionPrompt;
   readonly size: number;
   readonly onChoose: (piece: PromotionPieceType) => void;
+  /** The active colourway. Defaults to the ivory theme. */
+  readonly theme?: PieceTheme;
 }
 
 export function PromotionPicker({
   prompt,
   size,
   onChoose,
+  theme = defaultPieceTheme,
 }: PromotionPickerProps): React.ReactElement {
   const optionSize = Math.min(96, Math.max(56, size / 5));
 
@@ -54,7 +59,7 @@ export function PromotionPicker({
                 pressed && styles.optionPressed,
               ]}
             >
-              <PieceGlyph piece={piece} size={optionSize * 0.82} />
+              <PieceGlyph piece={piece} size={optionSize * 0.82} theme={theme} />
             </PressableScale>
           ))}
         </View>

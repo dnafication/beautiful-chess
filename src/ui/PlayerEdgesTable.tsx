@@ -5,8 +5,14 @@ import type { Game, Move, Piece, PieceColor, PromotionPieceType, Square } from '
 import { asyncStorageGameStore } from '../persistence/asyncStorageGameStore';
 import { restoreSession, saveSession } from '../persistence/gameStore';
 import type { GameStorage } from '../persistence/gameStore';
+import { asyncStoragePieceSetStore } from '../persistence/asyncStoragePieceSetStore';
+import { restorePieceTheme, savePieceTheme } from '../persistence/pieceSetStore';
+import type { PieceSetStorage } from '../persistence/pieceSetStore';
 import { Board } from './Board';
 import { PieceGlyph } from './pieces/PieceGlyph';
+import { defaultPieceTheme } from './pieces/themes';
+import type { PieceTheme } from './pieces/themes';
+import { PieceSetPicker } from './PieceSetPicker';
 import { PressableScale } from './PressableScale';
 import {
   calculatePlayerEdgesLayout,
@@ -71,8 +77,10 @@ const trayRowReservedWidth = 56;
  */
 export function PlayerEdgesTable({
   storage = asyncStorageGameStore,
+  pieceSetStorage = asyncStoragePieceSetStore,
 }: {
   readonly storage?: GameStorage;
+  readonly pieceSetStorage?: PieceSetStorage;
 } = {}): React.ReactElement {
   const viewport = useWindowDimensions();
   const layout = calculatePlayerEdgesLayout(viewport);
@@ -88,6 +96,12 @@ export function PlayerEdgesTable({
   const [confirmingNewGame, setConfirmingNewGame] = useState<PlayerEdge | undefined>(
     undefined,
   );
+  // The Player Edge that tapped "Pieces" to open the set picker. `undefined`
+  // means the picker is not open.
+  const [pieceSetPickerEdge, setPieceSetPickerEdge] = useState<PlayerEdge | undefined>(
+    undefined,
+  );
+  const [pieceTheme, setPieceTheme] = useState<PieceTheme>(defaultPieceTheme);
   const nonce = useRef(0);
 
   const game = session.game;
@@ -107,6 +121,19 @@ export function PlayerEdgesTable({
       active = false;
     };
   }, [storage]);
+
+  // Resume the stored piece set once on mount, independently of the game save.
+  useEffect(() => {
+    let active = true;
+    void restorePieceTheme(pieceSetStorage).then((theme) => {
+      if (active) {
+        setPieceTheme(theme);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [pieceSetStorage]);
 
   // Save whenever the session changes rather than hooking each action, so a
   // played move, an undo, a resignation and starting a new game are all stored
@@ -249,6 +276,15 @@ export function PlayerEdgesTable({
     setArrival(undefined);
   }, [session]);
 
+  const handleSelectPieceTheme = useCallback(
+    (theme: PieceTheme) => {
+      setPieceTheme(theme);
+      void savePieceTheme(pieceSetStorage, theme);
+      setPieceSetPickerEdge(undefined);
+    },
+    [pieceSetStorage],
+  );
+
   const renderPlayerEdge = (playerEdge: PlayerEdge) => {
     const presentation = playerEdgePresentation(playerEdge, activeColor);
     const checkText = playerEdgeCheckText(presentation.state, inCheck);
@@ -354,7 +390,11 @@ export function PlayerEdgesTable({
                         index === 0 ? 0 : trayMetrics.step - trayMetrics.glyphSize,
                     }}
                   >
-                    <PieceGlyph piece={piece} size={trayMetrics.glyphSize} />
+                    <PieceGlyph
+                      piece={piece}
+                      size={trayMetrics.glyphSize}
+                      theme={pieceTheme}
+                    />
                   </View>
                 ))}
               </View>
@@ -384,6 +424,20 @@ export function PlayerEdgesTable({
                   ]}
                 >
                   {undoControl.label}
+                </Text>
+              </PressableScale>
+              <PressableScale
+                accessibilityRole="button"
+                accessibilityLabel="Choose pieces"
+                onPress={() => setPieceSetPickerEdge(playerEdge)}
+                style={({ pressed }) => [
+                  styles.control,
+                  styles.piecesControl,
+                  pressed && styles.controlPressed,
+                ]}
+              >
+                <Text numberOfLines={1} style={styles.controlText}>
+                  Pieces
                 </Text>
               </PressableScale>
             </View>
@@ -515,12 +569,23 @@ export function PlayerEdgesTable({
             arrival={arrival}
             onTapSquare={handleTapSquare}
             onDropMove={handleDropMove}
+            theme={pieceTheme}
           />
           {promotion !== undefined && (
             <PromotionPicker
               prompt={promotion}
               size={layout.boardSize}
               onChoose={handleChoosePromotion}
+              theme={pieceTheme}
+            />
+          )}
+          {pieceSetPickerEdge !== undefined && (
+            <PieceSetPicker
+              playerEdge={pieceSetPickerEdge}
+              boardSize={layout.boardSize}
+              selectedId={pieceTheme.id}
+              onSelectTheme={handleSelectPieceTheme}
+              onDismiss={() => setPieceSetPickerEdge(undefined)}
             />
           )}
           {confirmingNewGame !== undefined && (
@@ -706,9 +771,17 @@ const styles = StyleSheet.create({
     color: '#b7ad9a',
   },
   undoRow: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
     height: playerEdgeRowHeights.undo,
+  },
+  piecesControl: {
+    // The undo control's available state already styles borderColor and
+    // backgroundColor; override only what is distinct for the pieces button.
+    borderColor: '#c7bdaa',
+    backgroundColor: 'transparent',
   },
   actionsRow: {
     flexDirection: 'row',
